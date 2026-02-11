@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
 <meta charset="UTF-8">
 <title>D!CTATOR</title>
@@ -12,46 +12,49 @@ body {
   text-align: center;
 }
 
-h1 {
+.logoText {
   font-size: 60px;
-  margin: 20px;
-  animation: shake 0.5s infinite;
+  font-weight: bold;
+  margin-top: 20px;
+  animation: shake 1s infinite;
+}
+
+.logoText span {
+  color: red;
 }
 
 @keyframes shake {
-  0% { transform: translate(0px,0px); }
-  25% { transform: translate(2px,-2px); }
-  50% { transform: translate(-2px,2px); }
-  75% { transform: translate(2px,2px); }
-  100% { transform: translate(0px,0px); }
+  0% { transform: translate(0,0) }
+  25% { transform: translate(2px,-2px) }
+  50% { transform: translate(-2px,2px) }
+  75% { transform: translate(2px,2px) }
+  100% { transform: translate(0,0) }
 }
 
 table {
   width: 90%;
   margin: auto;
   border-collapse: collapse;
-}
-
-th, td {
-  border: 1px solid gray;
-  padding: 8px;
   background: #111;
 }
 
-input {
-  width: 120px;
+th, td {
+  border: 1px solid #555;
+  padding: 8px;
 }
 
 button {
-  padding: 5px 10px;
+  padding: 6px 10px;
+  margin: 5px;
 }
 </style>
 </head>
 
 <body>
 
-<h1>D!CTATOR</h1>
-<h2>ตารางยอดบอล</h2>
+<div class="logoText">D<span>!</span>CTATOR</div>
+
+<h1>ตารางยอดบอล</h1>
 
 <button onclick="addRow()">+ เพิ่ม</button>
 
@@ -62,16 +65,16 @@ button {
 <th>ทุน</th>
 <th>กำไร</th>
 <th>ลบ</th>
+<th>รวม</th>
+<th>ลบวัน</th>
 </tr>
 </thead>
-<tbody id="rows"></tbody>
+<tbody></tbody>
 </table>
 
-<!-- Firebase -->
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDZ0iBQX1uJz_gf23M6gn8yQ6S90lGYDOc",
@@ -85,39 +88,56 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const dataRef = ref(db, "rows");
+const dataRef = ref(db, "ballTable");
+
+let tableData = [];
+
+function render() {
+  const tbody = document.querySelector("#table tbody");
+  tbody.innerHTML = "";
+
+  tableData.forEach((row, i) => {
+    const tr = document.createElement("tr");
+
+    row.forEach((cell, j) => {
+      const td = document.createElement("td");
+      const input = document.createElement("input");
+      input.value = cell;
+      input.oninput = () => {
+        tableData[i][j] = input.value;
+        save();
+      };
+      td.appendChild(input);
+      tr.appendChild(td);
+    });
+
+    const del = document.createElement("td");
+    const btn = document.createElement("button");
+    btn.textContent = "X";
+    btn.onclick = () => {
+      tableData.splice(i,1);
+      save();
+    };
+    del.appendChild(btn);
+    tr.appendChild(del);
+
+    tbody.appendChild(tr);
+  });
+}
+
+function save() {
+  set(dataRef, tableData);
+}
 
 window.addRow = function() {
-  const date = prompt("วันที่:");
-  const fund = prompt("ทุน:");
-  const profit = prompt("กำไร:");
-
-  push(dataRef, { date, fund, profit });
+  tableData.push(["","","","",""]);
+  save();
 };
 
-onValue(dataRef, snapshot => {
-  const rows = document.getElementById("rows");
-  rows.innerHTML = "";
-
-  snapshot.forEach(child => {
-    const d = child.val();
-    const key = child.key;
-
-    rows.innerHTML += `
-      <tr>
-        <td>${d.date}</td>
-        <td>${d.fund}</td>
-        <td>${d.profit}</td>
-        <td><button onclick="del('${key}')">X</button></td>
-      </tr>
-    `;
-  });
+onValue(dataRef, (snap) => {
+  tableData = snap.val() || [];
+  render();
 });
-
-window.del = function(key) {
-  remove(ref(db, "rows/" + key));
-};
-
 </script>
 
 </body>
