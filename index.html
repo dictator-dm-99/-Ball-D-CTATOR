@@ -24,7 +24,7 @@ body{
   margin:auto;
 }
 
-/* date bar */
+/* date */
 .dateBar{
   text-align:left;
   margin-bottom:6px;
@@ -37,7 +37,7 @@ body{
   font-size:12px;
 }
 
-/* league bar */
+/* league */
 .leagueBar{
   background:#111;
   border-top:1px solid #444;
@@ -167,16 +167,19 @@ button{
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-const firebaseConfig={
-apiKey:"AIzaSyDZ0...",
-authDomain:"dictator-ball.firebaseapp.com",
-databaseURL:"https://dictator-ball-default-rtdb.asia-southeast1.firebasedatabase.app",
-projectId:"dictator-ball"
+const firebaseConfig = {
+  apiKey: "AIzaSyDZ0iBQX1uJz_gf23M6gn8yQ6S90lGYDOc",
+  authDomain: "dictator-ball.firebaseapp.com",
+  databaseURL: "https://dictator-ball-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "dictator-ball",
+  storageBucket: "dictator-ball.firebasestorage.app",
+  messagingSenderId: "533340357926",
+  appId: "1:533340357926:web:a1eb15b77c335a7a57ade7"
 };
 
-const app=initializeApp(firebaseConfig);
-const db=getDatabase(app);
-const dataRef=ref(db,"table");
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const dataRef = ref(db,"table");
 
 let admin=false;
 
@@ -247,8 +250,9 @@ bet:parse(r.cells[6].children[0].value)
 });
 });
 
-set(dataRef,data);
-alert("Saved!");
+set(dataRef,data)
+.then(()=>alert("Saved!"))
+.catch(e=>alert("Error: "+e.message));
 }
 
 onValue(dataRef,s=>{
@@ -277,3 +281,4 @@ calc();
 </script>
 </body>
 </html>
+
