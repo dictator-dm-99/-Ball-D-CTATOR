@@ -12,10 +12,20 @@ body{
   text-align:center;
 }
 
+/* 🔥 logo สั่น */
 .logoText{
   font-size:48px;
   font-weight:bold;
   margin:20px;
+  animation:shake 2s infinite;
+}
+
+@keyframes shake{
+  0%{transform:translate(0)}
+  25%{transform:translate(1px,0)}
+  50%{transform:translate(-1px,0)}
+  75%{transform:translate(1px,0)}
+  100%{transform:translate(0)}
 }
 
 table{
@@ -114,17 +124,26 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const dataRef = ref(db, "table");
 
+// format comma
+function fmt(n){
+  return Number(n).toLocaleString();
+}
+
+// parse number remove comma
+function parse(n){
+  return Number(String(n).replace(/,/g,"")) || 0;
+}
+
 window.addDay = function(){
 
   let tbody = document.querySelector("#table tbody");
-
   let row = tbody.insertRow();
 
   row.innerHTML = `
   <td><input type="date"></td>
-  <td><input type="number" value="0"></td>
-  <td><input type="number" value="0"></td>
-  <td><input type="number" value="0"></td>
+  <td><input value="0"></td>
+  <td><input value="0"></td>
+  <td><input value="0"></td>
   <td>0</td>
   <td><button onclick="removeRow(this)">X</button></td>
   `;
@@ -144,13 +163,17 @@ function calc(){
   let sumทุน=0,sumกำไร=0,sumลบ=0,sumรวม=0;
 
   rows.forEach(r=>{
-    let ทุน = +r.cells[1].children[0].value;
-    let กำไร = +r.cells[2].children[0].value;
-    let ลบ = +r.cells[3].children[0].value;
+    let ทุน = parse(r.cells[1].children[0].value);
+    let กำไร = parse(r.cells[2].children[0].value);
+    let ลบ = parse(r.cells[3].children[0].value);
+
+    r.cells[1].children[0].value = fmt(ทุน);
+    r.cells[2].children[0].value = fmt(กำไร);
+    r.cells[3].children[0].value = fmt(ลบ);
 
     let รวม = ทุน + กำไร - ลบ;
 
-    r.cells[4].innerText = รวม.toLocaleString();
+    r.cells[4].innerText = fmt(รวม);
 
     sumทุน += ทุน;
     sumกำไร += กำไร;
@@ -158,10 +181,10 @@ function calc(){
     sumรวม += รวม;
   });
 
-  document.getElementById("sumทุน").innerText = sumทุน.toLocaleString();
-  document.getElementById("sumกำไร").innerText = sumกำไร.toLocaleString();
-  document.getElementById("sumลบ").innerText = sumลบ.toLocaleString();
-  document.getElementById("sumรวม").innerText = sumรวม.toLocaleString();
+  document.getElementById("sumทุน").innerText = fmt(sumทุน);
+  document.getElementById("sumกำไร").innerText = fmt(sumกำไร);
+  document.getElementById("sumลบ").innerText = fmt(sumลบ);
+  document.getElementById("sumรวม").innerText = fmt(sumรวม);
 }
 
 window.save = function(){
@@ -172,9 +195,9 @@ window.save = function(){
   rows.forEach(r=>{
     data.push({
       date: r.cells[0].children[0].value,
-      ทุน: r.cells[1].children[0].value,
-      กำไร: r.cells[2].children[0].value,
-      ลบ: r.cells[3].children[0].value
+      ทุน: parse(r.cells[1].children[0].value),
+      กำไร: parse(r.cells[2].children[0].value),
+      ลบ: parse(r.cells[3].children[0].value)
     });
   });
 
@@ -194,9 +217,9 @@ onValue(dataRef, snap=>{
 
     row.innerHTML = `
     <td><input type="date" value="${d.date}"></td>
-    <td><input type="number" value="${d.ทุน}"></td>
-    <td><input type="number" value="${d.กำไร}"></td>
-    <td><input type="number" value="${d.ลบ}"></td>
+    <td><input value="${fmt(d.ทุน)}"></td>
+    <td><input value="${fmt(d.กำไร)}"></td>
+    <td><input value="${fmt(d.ลบ)}"></td>
     <td>0</td>
     <td><button onclick="removeRow(this)">X</button></td>
     `;
