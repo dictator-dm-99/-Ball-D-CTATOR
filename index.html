@@ -19,25 +19,21 @@ body{
   margin:20px;
   animation:shake 2s infinite;
 }
-
 @keyframes shake{
   0%{transform:translate(0)}
-  25%{transform:translate(1px,0)}
-  50%{transform:translate(-1px,0)}
-  75%{transform:translate(1px,0)}
+  25%{transform:translate(1px)}
+  50%{transform:translate(-1px)}
+  75%{transform:translate(1px)}
   100%{transform:translate(0)}
 }
 
 /* login box */
-#loginBox{
-  margin:20px;
+#loginBox input{
+  width:140px;
+  padding:5px;
 }
 
-input, button{
-  padding:6px;
-  margin:5px;
-}
-
+/* table */
 table{
   width:90%;
   margin:auto;
@@ -70,6 +66,19 @@ input{
   text-align:center;
   background:white;
 }
+
+/* audit log */
+#logBox{
+  display:none;
+  margin:20px;
+  border:1px solid #555;
+  padding:10px;
+  height:150px;
+  overflow:auto;
+  background:#111;
+  font-size:12px;
+  text-align:left;
+}
 </style>
 </head>
 
@@ -79,10 +88,10 @@ input{
 <h2>ตารางยอดบอล</h2>
 
 <div id="loginBox">
-  <input id="user" placeholder="Username">
-  <input id="pass" type="password" placeholder="Password">
-  <button onclick="login()">Login Admin</button>
-  <button onclick="logout()">Logout</button>
+<input id="user" placeholder="Username">
+<input id="pass" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
+<button onclick="logout()">Logout</button>
 </div>
 
 <button id="addBtn" onclick="addDay()" disabled>+ เพิ่มวัน</button>
@@ -96,7 +105,7 @@ input{
 <th>กำไร</th>
 <th>-</th>
 <th>รวม</th>
-<th>ลบวัน</th>
+<th>ลบ</th>
 </tr>
 </thead>
 <tbody></tbody>
@@ -112,29 +121,30 @@ input{
 </tfoot>
 </table>
 
+<h3 id="logTitle" style="display:none">Audit Log</h3>
+<div id="logBox"></div>
+
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, set, onValue, get, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, set, onValue, get, push } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDZ0iBQX1uJz_gf23M6gn8yQ6S90lGYDOc",
-  authDomain: "dictator-ball.firebaseapp.com",
-  databaseURL: "https://dictator-ball-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "dictator-ball",
-  storageBucket: "dictator-ball.appspot.com",
-  messagingSenderId: "533340357926",
-  appId: "1:533340357926:web:a1eb15b77c335a7a57ade7"
+const firebaseConfig={
+apiKey:"AIzaSyDZ0iBQX1uJz_gf23M6gn8yQ6S90lGYDOc",
+authDomain:"dictator-ball.firebaseapp.com",
+databaseURL:"https://dictator-ball-default-rtdb.asia-southeast1.firebasedatabase.app",
+projectId:"dictator-ball"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+const app=initializeApp(firebaseConfig);
+const db=getDatabase(app);
 
-const dataRef = ref(db,"table");
-const sessionRef = ref(db,"sessions");
+const dataRef=ref(db,"table");
+const logRef=ref(db,"audit");
+const sessionRef=ref(db,"sessions");
 
-/* ===== ACCOUNT ===== */
-const accounts = {
+/* accounts */
+const accounts={
 "Pim888_":"dictator_888_pim",
 "Yohan888_":"dictator_yohan_888",
 "Jo888_":"Jo_dictator_888",
@@ -143,65 +153,84 @@ const accounts = {
 };
 
 let admin=false;
-let deviceId = localStorage.getItem("deviceId") || crypto.randomUUID();
-localStorage.setItem("deviceId",deviceId);
+let currentUser="";
+let deviceId=localStorage.getItem("dev")||crypto.randomUUID();
+localStorage.setItem("dev",deviceId);
 
-/* ===== LOGIN ===== */
-window.login = async function(){
+/* login */
+window.login=async function(){
+let u=user.value,p=pass.value;
+if(accounts[u]!==p){alert("Wrong login");return;}
 
-let u=user.value;
-let p=pass.value;
-
-if(accounts[u]!==p){
-alert("Wrong login");
-return;
-}
-
-let snap = await get(ref(db,"sessions/"+u));
-
-if(snap.exists() && snap.val()!==deviceId){
-alert("บัญชีนี้กำลังใช้งานอยู่!");
+let s=await get(ref(db,"sessions/"+u));
+if(s.exists()&&s.val()!==deviceId){
+alert("บัญชีนี้กำลังใช้งานอยู่");
 return;
 }
 
 set(ref(db,"sessions/"+u),deviceId);
 
 admin=true;
+currentUser=u;
 addBtn.disabled=false;
 saveBtn.disabled=false;
+logBox.style.display="block";
+logTitle.style.display="block";
 
-alert("Admin mode");
+log("LOGIN");
 }
 
 window.logout=function(){
 admin=false;
+currentUser="";
 addBtn.disabled=true;
 saveBtn.disabled=true;
-alert("Logout");
+logBox.style.display="none";
+logTitle.style.display="none";
 }
 
-/* ===== TABLE ===== */
+/* audit */
+function log(action){
+push(logRef,{
+user:currentUser,
+action:action,
+time:new Date().toLocaleString()
+});
+}
 
+onValue(logRef,s=>{
+if(!admin) return;
+let data=s.val();
+if(!data) return;
+
+logBox.innerHTML="";
+Object.values(data).slice(-20).reverse().forEach(d=>{
+logBox.innerHTML+=`<div>[${d.time}] ${d.user} → ${d.action}</div>`;
+});
+});
+
+/* table */
 function fmt(n){return Number(n).toLocaleString();}
 function parse(n){return Number(String(n).replace(/,/g,""))||0;}
 
 window.addDay=function(){
 if(!admin) return;
-let tbody=document.querySelector("#table tbody");
-let r=tbody.insertRow();
+let r=document.querySelector("#table tbody").insertRow();
 r.innerHTML=`
-<td><input type="date"></td>
-<td><input value="0"></td>
-<td><input value="0"></td>
-<td><input value="0"></td>
+<td><input type=date></td>
+<td><input value=0></td>
+<td><input value=0></td>
+<td><input value=0></td>
 <td>0</td>
 <td><button onclick="removeRow(this)">X</button></td>`;
+log("ADD ROW");
 calc();
 }
 
-window.removeRow=function(btn){
+window.removeRow=function(b){
 if(!admin) return;
-btn.parentNode.parentNode.remove();
+b.parentNode.parentNode.remove();
+log("DELETE ROW");
 calc();
 }
 
@@ -235,7 +264,6 @@ if(!admin) return;
 
 let rows=document.querySelectorAll("#table tbody tr");
 let data=[];
-
 rows.forEach(r=>{
 data.push({
 date:r.cells[0].children[0].value,
@@ -246,27 +274,25 @@ date:r.cells[0].children[0].value,
 });
 
 set(dataRef,data);
+log("SAVE TABLE");
 alert("Saved!");
 }
 
-onValue(dataRef,snap=>{
-let data=snap.val();
+onValue(dataRef,s=>{
+let data=s.val();
 if(!data) return;
-
 let tbody=document.querySelector("#table tbody");
 tbody.innerHTML="";
-
 data.forEach(d=>{
 let r=tbody.insertRow();
 r.innerHTML=`
-<td><input type="date" value="${d.date}"></td>
+<td><input type=date value="${d.date}"></td>
 <td><input value="${fmt(d.ทุน)}"></td>
 <td><input value="${fmt(d.กำไร)}"></td>
 <td><input value="${fmt(d.ลบ)}"></td>
 <td>0</td>
 <td><button onclick="removeRow(this)">X</button></td>`;
 });
-
 calc();
 });
 
