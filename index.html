@@ -5,24 +5,116 @@
 <title>D!CTATOR</title>
 
 <style>
-body{background:black;color:white;font-family:Arial;text-align:center;margin:0;}
-.logoText{font-size:48px;font-weight:bold;margin:20px;letter-spacing:3px;}
-.logoText span{color:red;}
-
-table{width:100%;border-collapse:collapse;}
-th{background:#2b1a00;color:#ffcc66;padding:8px;border:1px solid #555;}
-td{background:white;color:black;padding:6px;border:1px solid #555;vertical-align:top;}
-
-input{width:95%;padding:4px;text-align:center;}
-button{padding:4px 8px;margin:2px;cursor:pointer;}
-
-.betterRow{
-display:flex;
-gap:4px;
-margin-bottom:4px;
+body{
+  background:black;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+  margin:0;
 }
 
-.betterRow input{width:33%;}
+.logoText{
+  font-size:48px;
+  font-weight:bold;
+  margin:20px;
+  letter-spacing:3px;
+  animation: glitch 1.5s infinite;
+  text-shadow:0 0 10px #fff;
+}
+
+.logoText span{
+  color:red;
+  animation: blink 0.8s infinite;
+}
+
+@keyframes glitch{
+  0%{transform:translate(0);}
+  20%{transform:translate(-1px,1px);}
+  40%{transform:translate(1px,-1px);}
+  60%{transform:translate(-1px,0);}
+  80%{transform:translate(1px,1px);}
+  100%{transform:translate(0);}
+}
+
+@keyframes blink{
+  0%,100%{opacity:1;}
+  50%{opacity:0.2;}
+}
+
+.container{
+  width:98%;
+  margin:auto;
+}
+
+#loginBox input{
+  width:140px;
+  padding:5px;
+}
+
+.dateBar{
+  text-align:left;
+  margin-bottom:6px;
+  font-size:12px;
+}
+
+.dateBar input{
+  width:130px;
+  padding:3px;
+}
+
+.leagueBar{
+  background:#111;
+  border-top:1px solid #444;
+  border-bottom:1px solid #444;
+  padding:8px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:8px;
+  font-size:18px;
+}
+
+.leagueBar img{
+  height:26px;
+  background:white;
+  padding:2px 4px;
+  border-radius:4px;
+}
+
+table{
+  width:100%;
+  border-spacing:10px;
+}
+
+.block{
+  border:2px solid #555;
+  background:#111;
+}
+
+.block th{
+  background:#2b1a00;
+  color:#ffcc66;
+  font-size:12px;
+  padding:6px;
+  border:1px solid #333;
+}
+
+.block td{
+  background:white;
+  border:1px solid #999;
+}
+
+input{
+  width:100%;
+  border:none;
+  padding:4px;
+  text-align:center;
+}
+
+button{
+  padding:5px 10px;
+  cursor:pointer;
+}
 </style>
 </head>
 
@@ -30,176 +122,152 @@ margin-bottom:4px;
 
 <div class="logoText">D<span>!</span>CTATOR</div>
 
-<button onclick="addMatch()">+ เพิ่มคู่</button>
-<button onclick="save()">💾 Save</button>
+<div id="loginBox">
+<input id="user" placeholder="Username">
+<input id="pass" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
+<button onclick="logout()">Logout</button>
+</div>
+
+<br>
+
+<button id="addBtn" onclick="addRow()" disabled>+ เพิ่มแถว</button>
+<button id="saveBtn" onclick="save()" disabled>💾 Save</button>
+
+<br><br>
+
+<div class="container">
+
+<div class="dateBar">
+วันที่:
+<input type="date">
+</div>
+
+<div class="leagueBar">
+พรีเมียร์ลีกอังกฤษ (Premier League)
+<img src="https://upload.wikimedia.org/wikipedia/en/f/f2/Premier_League_Logo.svg">
+</div>
 
 <table id="table">
-
-<thead>
-<tr>
-<th>เวลา</th>
-<th>ทีมเจ้าบ้าน</th>
-<th>ราคาบอล</th>
-<th>ทีมเยือน</th>
-<th>รายชื่อผู้แทง</th>
-<th>ลบ</th>
-</tr>
-</thead>
-
 <tbody></tbody>
-
-<tfoot>
-<tr>
-<td colspan="4">รวมยอดแทง</td>
-<td id="sum">0</td>
-<td></td>
-</tr>
-</tfoot>
-
 </table>
+
+</div>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-const firebaseConfig={
-apiKey:"YOURKEY",
-authDomain:"YOUR",
-databaseURL:"YOUR",
-projectId:"YOUR",
+const firebaseConfig = {
+  apiKey: "AIza...",
+  authDomain: "dictator-ball.firebaseapp.com",
+  databaseURL: "https://dictator-ball-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "dictator-ball"
 };
 
-const app=initializeApp(firebaseConfig);
-const db=getDatabase(app);
-const dataRef=ref(db,"matches");
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const dataRef = ref(db,"table");
 
-function fmt(n){return Number(n).toLocaleString();}
-function parse(n){return Number(String(n).replace(/,/g,""))||0;}
+let admin=false;
 
-window.addMatch=function(){
-let r=document.querySelector("#table tbody").insertRow();
-
-r.innerHTML=`
-<td><input type="time"></td>
-<td><input></td>
-<td><input></td>
-<td><input></td>
-<td>
-<div class="betList"></div>
-<button onclick="addBetter(this)">+ เพิ่มชื่อ</button>
-</td>
-<td><button onclick="removeRow(this)">X</button></td>
-`;
-
+window.login=function(){
+admin=true;
+addBtn.disabled=false;
+saveBtn.disabled=false;
 }
 
-window.addBetter=function(btn){
-let box=btn.parentNode.querySelector(".betList");
+window.logout=function(){
+admin=false;
+addBtn.disabled=true;
+saveBtn.disabled=true;
+}
 
-let div=document.createElement("div");
-div.className="betterRow";
+function buildBlock(data=[], header=false){
 
-div.innerHTML=`
-<input placeholder="ชื่อ">
-<input placeholder="เบอร์">
-<input placeholder="ยอด">
-<button onclick="this.parentNode.remove();calc()">X</button>
-`;
+let cell=document.createElement("td");
+cell.className="block";
 
-box.appendChild(div);
+let head = header ? `
+<tr>
+<th>เวลา</th>
+<th>ทีมเจ้าบ้าน</th>
+<th>ราคาบอล</th>
+<th>ทีมเยือน</th>
+</tr>` : "";
+
+cell.innerHTML=`
+<table style="width:100%;border-collapse:collapse;">
+${head}
+<tr>
+<td><input type="time" value="${data[0]||""}"></td>
+<td><input value="${data[1]||""}"></td>
+<td><input value="${data[2]||""}"></td>
+<td><input value="${data[3]||""}"></td>
+</tr>
+</table>`;
+
+return cell;
+}
+
+function buildRow(rowData=[], header=false){
+
+let r=document.querySelector("#table tbody").insertRow();
+
+for(let i=0;i<5;i++){
+let start=i*4;
+r.appendChild(buildBlock(rowData.slice(start,start+4), header));
+}
+
+let del=document.createElement("td");
+del.innerHTML=`<button onclick="removeRow(this)">X</button>`;
+r.appendChild(del);
+}
+
+function buildHeaderRow(){
+buildRow([], true);
+}
+
+window.addRow=function(){
+if(!admin) return;
+buildRow();
 }
 
 window.removeRow=function(b){
 b.parentNode.parentNode.remove();
-calc();
 }
-
-function calc(){
-let total=0;
-
-document.querySelectorAll(".betterRow").forEach(r=>{
-let v=parse(r.children[2].value);
-r.children[2].value=fmt(v);
-total+=v;
-});
-
-sum.innerText=fmt(total);
-}
-
-document.addEventListener("input",calc);
 
 window.save=function(){
 
-let matches=[];
+let rows=document.querySelectorAll("#table tbody tr");
+let data=[];
 
-document.querySelectorAll("#table tbody tr").forEach(r=>{
-
-let betters=[];
-
-r.querySelectorAll(".betterRow").forEach(b=>{
-betters.push({
-name:b.children[0].value,
-phone:b.children[1].value,
-bet:parse(b.children[2].value)
-});
+rows.forEach(r=>{
+let row=[];
+r.querySelectorAll("input").forEach(i=>row.push(i.value));
+data.push(row);
 });
 
-matches.push({
-time:r.cells[0].children[0].value,
-home:r.cells[1].children[0].value,
-price:r.cells[2].children[0].value,
-away:r.cells[3].children[0].value,
-betters:betters
-});
-
-});
-
-set(dataRef,matches);
+set(dataRef,data);
 }
 
 onValue(dataRef,s=>{
-let data=s.val();
-if(!data) return;
-
+let d=s.val();
 let tbody=document.querySelector("#table tbody");
 tbody.innerHTML="";
 
-data.forEach(m=>{
+buildHeaderRow(); // header เสมอ
 
-let r=tbody.insertRow();
+if(!d || d.length==0){
+for(let i=0;i<3;i++) buildRow();
+return;
+}
 
-r.innerHTML=`
-<td><input type="time" value="${m.time}"></td>
-<td><input value="${m.home}"></td>
-<td><input value="${m.price}"></td>
-<td><input value="${m.away}"></td>
-<td>
-<div class="betList"></div>
-<button onclick="addBetter(this)">+ เพิ่มชื่อ</button>
-</td>
-<td><button onclick="removeRow(this)">X</button></td>
-`;
-
-let box=r.querySelector(".betList");
-
-m.betters?.forEach(b=>{
-let div=document.createElement("div");
-div.className="betterRow";
-div.innerHTML=`
-<input value="${b.name}">
-<input value="${b.phone}">
-<input value="${fmt(b.bet)}">
-<button onclick="this.parentNode.remove();calc()">X</button>
-`;
-box.appendChild(div);
-});
-
-});
-
-calc();
+d.forEach(row=>buildRow(row));
 });
 
 </script>
+
 </body>
 </html>
