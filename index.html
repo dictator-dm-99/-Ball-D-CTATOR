@@ -6,23 +6,21 @@
 
 <style>
 body{
-  background:#000;
+  background:black;
   color:white;
-  font-family:sans-serif;
+  font-family:Arial;
   text-align:center;
 }
 
-h1{margin-top:20px;}
-
-button{
-  padding:6px 12px;
-  margin:5px;
-  cursor:pointer;
+.logoText{
+  font-size:48px;
+  font-weight:bold;
+  margin:20px;
 }
 
 table{
   width:90%;
-  margin:20px auto;
+  margin:auto;
   border-collapse:collapse;
 }
 
@@ -30,7 +28,7 @@ th{
   background:#111;
   color:white;
   padding:8px;
-  border:1px solid #444;
+  border:1px solid #555;
 }
 
 td{
@@ -40,9 +38,8 @@ td{
   border:1px solid #555;
 }
 
-/* แถวรวมทั้งหมด */
 tfoot td{
-  background:#000;
+  background:black;
   color:white;
   font-weight:bold;
 }
@@ -53,12 +50,18 @@ input{
   text-align:center;
   background:white;
 }
+
+button{
+  padding:6px 12px;
+  margin:5px;
+  cursor:pointer;
+}
 </style>
 </head>
 
 <body>
 
-<h1>D!CTATOR</h1>
+<div class="logoText">D<span style="color:red">!</span>CTATOR</div>
 <h2>ตารางยอดบอล</h2>
 
 <button onclick="addDay()">+ เพิ่มวัน</button>
@@ -76,7 +79,7 @@ input{
 </tr>
 </thead>
 
-<tbody id="tbody"></tbody>
+<tbody></tbody>
 
 <tfoot>
 <tr>
@@ -92,22 +95,30 @@ input{
 </table>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// 🔥 Firebase
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDZ0iBQX1uJz_gf23M6gn8yQ6S90lGYDOc",
   authDomain: "dictator-ball.firebaseapp.com",
   databaseURL: "https://dictator-ball-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "dictator-ball",
+  storageBucket: "dictator-ball.appspot.com",
+  messagingSenderId: "533340357926",
+  appId: "1:533340357926:web:a1eb15b77c335a7a57ade7"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const dataRef = ref(db, "table");
 
 window.addDay = function(){
-  const tbody = document.getElementById("tbody");
-  const row = tbody.insertRow();
+
+  let tbody = document.querySelector("#table tbody");
+
+  let row = tbody.insertRow();
 
   row.innerHTML = `
   <td><input type="date"></td>
@@ -115,71 +126,87 @@ window.addDay = function(){
   <td><input type="number" value="0"></td>
   <td><input type="number" value="0"></td>
   <td>0</td>
-  <td><button onclick="this.closest('tr').remove(); calc()">X</button></td>
+  <td><button onclick="removeRow(this)">X</button></td>
   `;
-
-  row.querySelectorAll("input").forEach(i=>{
-    i.oninput = calc;
-  });
-
-  calc();
-};
-
-window.calc = function(){
-  let sumทุน=0,sumกำไร=0,sumลบ=0,sumรวม=0;
-
-  document.querySelectorAll("#tbody tr").forEach(r=>{
-    let ทุน=+r.cells[1].children[0].value;
-    let กำไร=+r.cells[2].children[0].value;
-    let ลบ=+r.cells[3].children[0].value;
-
-    let รวม=ทุน+กำไร-ลบ;
-    r.cells[4].innerText=รวม;
-
-    sumทุน+=ทุน;
-    sumกำไร+=กำไร;
-    sumลบ+=ลบ;
-    sumรวม+=รวม;
-  });
-
-  document.getElementById("sumทุน").innerText=sumทุน;
-  document.getElementById("sumกำไร").innerText=sumกำไร;
-  document.getElementById("sumลบ").innerText=sumลบ;
-  document.getElementById("sumรวม").innerText=sumรวม;
-};
-
-window.save = async function(){
-  const data=[];
-  document.querySelectorAll("#tbody tr").forEach(r=>{
-    data.push({
-      date:r.cells[0].children[0].value,
-      ทุน:r.cells[1].children[0].value,
-      กำไร:r.cells[2].children[0].value,
-      ลบ:r.cells[3].children[0].value
-    });
-  });
-
-  await set(ref(db,"table"),data);
-  alert("Saved!");
-};
-
-async function load(){
-  const snap = await get(ref(db,"table"));
-  if(!snap.exists()) return;
-
-  snap.val().forEach(d=>{
-    addDay();
-    const r=document.querySelector("#tbody tr:last-child");
-    r.cells[0].children[0].value=d.date;
-    r.cells[1].children[0].value=d.ทุน;
-    r.cells[2].children[0].value=d.กำไร;
-    r.cells[3].children[0].value=d.ลบ;
-  });
 
   calc();
 }
 
-load();
+window.removeRow = function(btn){
+  btn.parentNode.parentNode.remove();
+  calc();
+}
+
+function calc(){
+
+  let rows = document.querySelectorAll("#table tbody tr");
+
+  let sumทุน=0,sumกำไร=0,sumลบ=0,sumรวม=0;
+
+  rows.forEach(r=>{
+    let ทุน = +r.cells[1].children[0].value;
+    let กำไร = +r.cells[2].children[0].value;
+    let ลบ = +r.cells[3].children[0].value;
+
+    let รวม = ทุน + กำไร - ลบ;
+
+    r.cells[4].innerText = รวม.toLocaleString();
+
+    sumทุน += ทุน;
+    sumกำไร += กำไร;
+    sumลบ += ลบ;
+    sumรวม += รวม;
+  });
+
+  document.getElementById("sumทุน").innerText = sumทุน.toLocaleString();
+  document.getElementById("sumกำไร").innerText = sumกำไร.toLocaleString();
+  document.getElementById("sumลบ").innerText = sumลบ.toLocaleString();
+  document.getElementById("sumรวม").innerText = sumรวม.toLocaleString();
+}
+
+window.save = function(){
+
+  let rows = document.querySelectorAll("#table tbody tr");
+  let data = [];
+
+  rows.forEach(r=>{
+    data.push({
+      date: r.cells[0].children[0].value,
+      ทุน: r.cells[1].children[0].value,
+      กำไร: r.cells[2].children[0].value,
+      ลบ: r.cells[3].children[0].value
+    });
+  });
+
+  set(dataRef, data);
+  alert("Saved!");
+}
+
+onValue(dataRef, snap=>{
+  let data = snap.val();
+  if(!data) return;
+
+  let tbody = document.querySelector("#table tbody");
+  tbody.innerHTML="";
+
+  data.forEach(d=>{
+    let row = tbody.insertRow();
+
+    row.innerHTML = `
+    <td><input type="date" value="${d.date}"></td>
+    <td><input type="number" value="${d.ทุน}"></td>
+    <td><input type="number" value="${d.กำไร}"></td>
+    <td><input type="number" value="${d.ลบ}"></td>
+    <td>0</td>
+    <td><button onclick="removeRow(this)">X</button></td>
+    `;
+  });
+
+  calc();
+});
+
+document.addEventListener("input", calc);
+
 </script>
 
 </body>
