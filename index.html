@@ -12,13 +12,13 @@ body{
   text-align:center;
 }
 
+/* logo */
 .logoText{
   font-size:48px;
   font-weight:bold;
   margin:20px;
   animation:shake 2s infinite;
 }
-
 @keyframes shake{
   0%{transform:translate(0)}
   25%{transform:translate(1px)}
@@ -27,11 +27,13 @@ body{
   100%{transform:translate(0)}
 }
 
+/* login */
 #loginBox input{
   width:140px;
   padding:5px;
 }
 
+/* table */
 table{
   width:90%;
   margin:auto;
@@ -58,13 +60,17 @@ tfoot td{
   font-weight:bold;
 }
 
+/* ช่องกรอบเล็ก */
 input{
-  width:100%;
-  border:none;
+  width:95%;
+  border:1px solid #aaa;
+  padding:3px;
   text-align:center;
   background:white;
+  box-shadow: inset 0 0 3px #ccc;
 }
 
+/* audit */
 #logBox{
   display:none;
   margin:20px;
@@ -91,8 +97,11 @@ input{
 <button onclick="logout()">Logout</button>
 </div>
 
+<br>
+
 <button id="addBtn" onclick="addDay()" disabled>+ เพิ่มวัน</button>
 <button id="saveBtn" onclick="save()" disabled>💾 Save</button>
+<button onclick="toggleLog()">📜 Audit Log</button>
 
 <table id="table">
 <thead>
@@ -100,7 +109,7 @@ input{
 <th>วันที่</th>
 <th>ทุน</th>
 <th>กำไร</th>
-<th>ลบ</th>
+<th>-</th>
 <th>รวม</th>
 <th>ลบวัน</th>
 </tr>
@@ -154,15 +163,13 @@ let currentUser="";
 let deviceId=localStorage.getItem("dev")||crypto.randomUUID();
 localStorage.setItem("dev",deviceId);
 
-/* auto login if remembered */
+/* auto login */
 let rememberedUser=localStorage.getItem("loginUser");
 if(rememberedUser){
 admin=true;
 currentUser=rememberedUser;
 addBtn.disabled=false;
 saveBtn.disabled=false;
-logBox.style.display="block";
-logTitle.style.display="block";
 }
 
 /* login */
@@ -184,27 +191,29 @@ localStorage.setItem("loginUser",u);
 
 addBtn.disabled=false;
 saveBtn.disabled=false;
-logBox.style.display="block";
-logTitle.style.display="block";
 
 log("LOGIN");
 }
 
-/* logout = unlock account */
+/* logout */
 window.logout=async function(){
 if(currentUser){
 await remove(ref(db,"sessions/"+currentUser));
 log("LOGOUT");
 }
-
 admin=false;
 currentUser="";
 localStorage.removeItem("loginUser");
 
 addBtn.disabled=true;
 saveBtn.disabled=true;
-logBox.style.display="none";
-logTitle.style.display="none";
+}
+
+/* audit toggle */
+window.toggleLog=function(){
+if(!admin) return;
+logBox.style.display = logBox.style.display=="none"?"block":"none";
+logTitle.style.display = logTitle.style.display=="none"?"block":"none";
 }
 
 /* audit */
