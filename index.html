@@ -12,7 +12,7 @@ body{
   text-align:center;
 }
 
-/* 🔥 logo สั่น */
+/* logo */
 .logoText{
   font-size:48px;
   font-weight:bold;
@@ -26,6 +26,16 @@ body{
   50%{transform:translate(-1px,0)}
   75%{transform:translate(1px,0)}
   100%{transform:translate(0)}
+}
+
+/* login box */
+#loginBox{
+  margin:20px;
+}
+
+input, button{
+  padding:6px;
+  margin:5px;
 }
 
 table{
@@ -60,12 +70,6 @@ input{
   text-align:center;
   background:white;
 }
-
-button{
-  padding:6px 12px;
-  margin:5px;
-  cursor:pointer;
-}
 </style>
 </head>
 
@@ -74,8 +78,15 @@ button{
 <div class="logoText">D<span style="color:red">!</span>CTATOR</div>
 <h2>ตารางยอดบอล</h2>
 
-<button onclick="addDay()">+ เพิ่มวัน</button>
-<button onclick="save()">💾 Save</button>
+<div id="loginBox">
+  <input id="user" placeholder="Username">
+  <input id="pass" type="password" placeholder="Password">
+  <button onclick="login()">Login Admin</button>
+  <button onclick="logout()">Logout</button>
+</div>
+
+<button id="addBtn" onclick="addDay()" disabled>+ เพิ่มวัน</button>
+<button id="saveBtn" onclick="save()" disabled>💾 Save</button>
 
 <table id="table">
 <thead>
@@ -88,9 +99,7 @@ button{
 <th>ลบวัน</th>
 </tr>
 </thead>
-
 <tbody></tbody>
-
 <tfoot>
 <tr>
 <td>รวมทั้งหมด</td>
@@ -101,14 +110,12 @@ button{
 <td></td>
 </tr>
 </tfoot>
-
 </table>
 
 <script type="module">
 
-// 🔥 Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, set, onValue, get, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDZ0iBQX1uJz_gf23M6gn8yQ6S90lGYDOc",
@@ -122,115 +129,149 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const dataRef = ref(db, "table");
 
-// format comma
-function fmt(n){
-  return Number(n).toLocaleString();
+const dataRef = ref(db,"table");
+const sessionRef = ref(db,"sessions");
+
+/* ===== ACCOUNT ===== */
+const accounts = {
+"Pim888_":"dictator_888_pim",
+"Yohan888_":"dictator_yohan_888",
+"Jo888_":"Jo_dictator_888",
+"Jwish888_":"dictator_Jwish888_",
+"Joommeng_":"Joommeng888"
+};
+
+let admin=false;
+let deviceId = localStorage.getItem("deviceId") || crypto.randomUUID();
+localStorage.setItem("deviceId",deviceId);
+
+/* ===== LOGIN ===== */
+window.login = async function(){
+
+let u=user.value;
+let p=pass.value;
+
+if(accounts[u]!==p){
+alert("Wrong login");
+return;
 }
 
-// parse number remove comma
-function parse(n){
-  return Number(String(n).replace(/,/g,"")) || 0;
+let snap = await get(ref(db,"sessions/"+u));
+
+if(snap.exists() && snap.val()!==deviceId){
+alert("บัญชีนี้กำลังใช้งานอยู่!");
+return;
 }
 
-window.addDay = function(){
+set(ref(db,"sessions/"+u),deviceId);
 
-  let tbody = document.querySelector("#table tbody");
-  let row = tbody.insertRow();
+admin=true;
+addBtn.disabled=false;
+saveBtn.disabled=false;
 
-  row.innerHTML = `
-  <td><input type="date"></td>
-  <td><input value="0"></td>
-  <td><input value="0"></td>
-  <td><input value="0"></td>
-  <td>0</td>
-  <td><button onclick="removeRow(this)">X</button></td>
-  `;
-
-  calc();
+alert("Admin mode");
 }
 
-window.removeRow = function(btn){
-  btn.parentNode.parentNode.remove();
-  calc();
+window.logout=function(){
+admin=false;
+addBtn.disabled=true;
+saveBtn.disabled=true;
+alert("Logout");
+}
+
+/* ===== TABLE ===== */
+
+function fmt(n){return Number(n).toLocaleString();}
+function parse(n){return Number(String(n).replace(/,/g,""))||0;}
+
+window.addDay=function(){
+if(!admin) return;
+let tbody=document.querySelector("#table tbody");
+let r=tbody.insertRow();
+r.innerHTML=`
+<td><input type="date"></td>
+<td><input value="0"></td>
+<td><input value="0"></td>
+<td><input value="0"></td>
+<td>0</td>
+<td><button onclick="removeRow(this)">X</button></td>`;
+calc();
+}
+
+window.removeRow=function(btn){
+if(!admin) return;
+btn.parentNode.parentNode.remove();
+calc();
 }
 
 function calc(){
+let rows=document.querySelectorAll("#table tbody tr");
+let s1=0,s2=0,s3=0,s4=0;
 
-  let rows = document.querySelectorAll("#table tbody tr");
+rows.forEach(r=>{
+let a=parse(r.cells[1].children[0].value);
+let b=parse(r.cells[2].children[0].value);
+let c=parse(r.cells[3].children[0].value);
 
-  let sumทุน=0,sumกำไร=0,sumลบ=0,sumรวม=0;
+r.cells[1].children[0].value=fmt(a);
+r.cells[2].children[0].value=fmt(b);
+r.cells[3].children[0].value=fmt(c);
 
-  rows.forEach(r=>{
-    let ทุน = parse(r.cells[1].children[0].value);
-    let กำไร = parse(r.cells[2].children[0].value);
-    let ลบ = parse(r.cells[3].children[0].value);
+let sum=a+b-c;
+r.cells[4].innerText=fmt(sum);
 
-    r.cells[1].children[0].value = fmt(ทุน);
-    r.cells[2].children[0].value = fmt(กำไร);
-    r.cells[3].children[0].value = fmt(ลบ);
-
-    let รวม = ทุน + กำไร - ลบ;
-
-    r.cells[4].innerText = fmt(รวม);
-
-    sumทุน += ทุน;
-    sumกำไร += กำไร;
-    sumลบ += ลบ;
-    sumรวม += รวม;
-  });
-
-  document.getElementById("sumทุน").innerText = fmt(sumทุน);
-  document.getElementById("sumกำไร").innerText = fmt(sumกำไร);
-  document.getElementById("sumลบ").innerText = fmt(sumลบ);
-  document.getElementById("sumรวม").innerText = fmt(sumรวม);
-}
-
-window.save = function(){
-
-  let rows = document.querySelectorAll("#table tbody tr");
-  let data = [];
-
-  rows.forEach(r=>{
-    data.push({
-      date: r.cells[0].children[0].value,
-      ทุน: parse(r.cells[1].children[0].value),
-      กำไร: parse(r.cells[2].children[0].value),
-      ลบ: parse(r.cells[3].children[0].value)
-    });
-  });
-
-  set(dataRef, data);
-  alert("Saved!");
-}
-
-onValue(dataRef, snap=>{
-  let data = snap.val();
-  if(!data) return;
-
-  let tbody = document.querySelector("#table tbody");
-  tbody.innerHTML="";
-
-  data.forEach(d=>{
-    let row = tbody.insertRow();
-
-    row.innerHTML = `
-    <td><input type="date" value="${d.date}"></td>
-    <td><input value="${fmt(d.ทุน)}"></td>
-    <td><input value="${fmt(d.กำไร)}"></td>
-    <td><input value="${fmt(d.ลบ)}"></td>
-    <td>0</td>
-    <td><button onclick="removeRow(this)">X</button></td>
-    `;
-  });
-
-  calc();
+s1+=a;s2+=b;s3+=c;s4+=sum;
 });
 
-document.addEventListener("input", calc);
+sumทุน.innerText=fmt(s1);
+sumกำไร.innerText=fmt(s2);
+sumลบ.innerText=fmt(s3);
+sumรวม.innerText=fmt(s4);
+}
+
+window.save=function(){
+if(!admin) return;
+
+let rows=document.querySelectorAll("#table tbody tr");
+let data=[];
+
+rows.forEach(r=>{
+data.push({
+date:r.cells[0].children[0].value,
+ทุน:parse(r.cells[1].children[0].value),
+กำไร:parse(r.cells[2].children[0].value),
+ลบ:parse(r.cells[3].children[0].value)
+});
+});
+
+set(dataRef,data);
+alert("Saved!");
+}
+
+onValue(dataRef,snap=>{
+let data=snap.val();
+if(!data) return;
+
+let tbody=document.querySelector("#table tbody");
+tbody.innerHTML="";
+
+data.forEach(d=>{
+let r=tbody.insertRow();
+r.innerHTML=`
+<td><input type="date" value="${d.date}"></td>
+<td><input value="${fmt(d.ทุน)}"></td>
+<td><input value="${fmt(d.กำไร)}"></td>
+<td><input value="${fmt(d.ลบ)}"></td>
+<td>0</td>
+<td><button onclick="removeRow(this)">X</button></td>`;
+});
+
+calc();
+});
+
+document.addEventListener("input",calc);
 
 </script>
-
 </body>
 </html>
