@@ -19,48 +19,38 @@ body{
   margin:20px;
 }
 
-/* wrapper ให้ topbar + table เท่ากัน */
 .container{
   width:95%;
   margin:auto;
 }
 
-/* top bar */
-.topBar{
+/* date bar */
+.dateBar{
+  text-align:left;
+  margin-bottom:6px;
+  font-size:12px;
+}
+
+.dateBar input{
+  width:130px;
+  padding:3px;
+  font-size:12px;
+}
+
+/* league bar */
+.leagueBar{
   background:#111;
   border-top:1px solid #444;
   border-bottom:1px solid #444;
-  padding:8px 12px;
+  padding:8px;
   display:flex;
-  justify-content:space-between;
-  align-items:center;
-  flex-wrap:wrap;
-  box-sizing:border-box;
-}
-
-/* date */
-.dateMini{
-  display:flex;
-  align-items:center;
-  gap:4px;
-  font-size:12px;
-}
-
-.dateMini input{
-  width:120px;
-  padding:2px;
-  font-size:12px;
-}
-
-/* league */
-.leagueTitle{
-  font-size:18px;
-  display:flex;
+  justify-content:center;
   align-items:center;
   gap:8px;
+  font-size:18px;
 }
 
-.leagueTitle img{
+.leagueBar img{
   height:26px;
 }
 
@@ -130,20 +120,14 @@ button{
 
 <div class="container">
 
-<!-- top bar -->
-<div class="topBar">
-
-<div class="dateMini">
-<input type="date" id="dateStart">
-<span>→</span>
-<input type="date" id="dateEnd">
+<div class="dateBar">
+วันที่:
+<input type="date" id="dateBox">
 </div>
 
-<div class="leagueTitle">
+<div class="leagueBar">
 พรีเมียร์ลีกอังกฤษ (Premier League)
 <img src="https://upload.wikimedia.org/wikipedia/en/f/f2/Premier_League_Logo.svg">
-</div>
-
 </div>
 
 <table id="table">
