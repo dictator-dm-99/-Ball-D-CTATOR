@@ -18,13 +18,40 @@ body{
   margin:20px;
 }
 
-/* แถบลีก */
-.leagueBar{
+/* top bar */
+.topBar{
   background:#111;
-  padding:10px;
-  font-size:20px;
   border-top:1px solid #444;
   border-bottom:1px solid #444;
+  padding:8px 12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+.dateMini{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  font-size:12px;
+}
+
+.dateMini input{
+  width:120px;
+  padding:2px;
+  font-size:12px;
+}
+
+.leagueTitle{
+  font-size:18px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.leagueTitle img{
+  height:26px;
 }
 
 /* login */
@@ -60,7 +87,6 @@ tfoot td{
   font-weight:bold;
 }
 
-/* input */
 input{
   width:95%;
   border:1px solid #aaa;
@@ -93,8 +119,20 @@ button{
 
 <br><br>
 
-<div class="leagueBar">
+<!-- top bar -->
+<div class="topBar">
+
+<div class="dateMini">
+<input type="date" id="dateStart">
+<span>→</span>
+<input type="date" id="dateEnd">
+</div>
+
+<div class="leagueTitle">
 พรีเมียร์ลีกอังกฤษ (Premier League)
+<img src="https://upload.wikimedia.org/wikipedia/en/f/f2/Premier_League_Logo.svg">
+</div>
+
 </div>
 
 <table id="table">
@@ -140,9 +178,9 @@ const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
 const dataRef=ref(db,"table");
 
-/* login demo */
 let admin=false;
 
+/* login */
 window.login=function(){
 admin=true;
 addBtn.disabled=false;
@@ -176,13 +214,13 @@ r.innerHTML=`
 calc();
 }
 
-/* delete row */
+/* delete */
 window.removeRow=function(b){
 b.parentNode.parentNode.remove();
 calc();
 }
 
-/* calculate total */
+/* calc */
 function calc(){
 let rows=document.querySelectorAll("#table tbody tr");
 let total=0;
