@@ -10,89 +10,39 @@ body{
   color:white;
   font-family:Arial;
   text-align:center;
-  margin:0;
 }
 
-/* ===== LOGO ANIMATION ===== */
+/* logo */
 .logoText{
   font-size:48px;
   font-weight:bold;
   margin:20px;
-  letter-spacing:3px;
-  animation: glitch 1.5s infinite;
-  text-shadow:0 0 10px #fff;
+  animation:shake 2s infinite;
+}
+@keyframes shake{
+  0%{transform:translate(0)}
+  25%{transform:translate(1px)}
+  50%{transform:translate(-1px)}
+  75%{transform:translate(1px)}
+  100%{transform:translate(0)}
 }
 
-.logoText span{
-  color:red;
-  animation: blink 0.8s infinite;
-  text-shadow:0 0 10px red,0 0 20px red;
-}
-
-@keyframes glitch{
-  0%{transform:translate(0);}
-  20%{transform:translate(-1px,1px);}
-  40%{transform:translate(1px,-1px);}
-  60%{transform:translate(-1px,0);}
-  80%{transform:translate(1px,1px);}
-  100%{transform:translate(0);}
-}
-
-@keyframes blink{
-  0%,100%{opacity:1;}
-  50%{opacity:0.2;}
-}
-
-/* ===== UI ===== */
-.container{
-  width:95%;
-  margin:auto;
-}
-
-.dateBar{
-  text-align:left;
-  margin-bottom:6px;
-  font-size:12px;
-}
-
-.dateBar input{
-  width:130px;
-  padding:3px;
-  font-size:12px;
-}
-
-.leagueBar{
-  background:#111;
-  border-top:1px solid #444;
-  border-bottom:1px solid #444;
-  padding:8px;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  gap:8px;
-  font-size:18px;
-}
-
-.leagueBar img{
-  height:26px;
-  background:white;
-  padding:2px 4px;
-  border-radius:4px;
-}
-
+/* login */
 #loginBox input{
   width:140px;
   padding:5px;
 }
 
+/* table */
 table{
-  width:100%;
+  width:90%;
+  margin:auto;
   border-collapse:collapse;
 }
 
 th{
-  background:#2b1a00;
-  color:#ffcc66;
+  background:#111;
+  color:white;
   padding:8px;
   border:1px solid #555;
 }
@@ -110,23 +60,35 @@ tfoot td{
   font-weight:bold;
 }
 
+/* ช่องกรอบเล็ก */
 input{
   width:95%;
   border:1px solid #aaa;
-  padding:4px;
+  padding:3px;
   text-align:center;
+  background:white;
+  box-shadow: inset 0 0 3px #ccc;
 }
 
-button{
-  padding:5px 10px;
-  cursor:pointer;
+/* audit */
+#logBox{
+  display:none;
+  margin:20px;
+  border:1px solid #555;
+  padding:10px;
+  height:150px;
+  overflow:auto;
+  background:#111;
+  font-size:12px;
+  text-align:left;
 }
 </style>
 </head>
 
 <body>
 
-<div class="logoText">D<span>!</span>CTATOR</div>
+<div class="logoText">D<span style="color:red">!</span>CTATOR</div>
+<h2>ตารางยอดบอล</h2>
 
 <div id="loginBox">
 <input id="user" placeholder="Username">
@@ -137,167 +99,227 @@ button{
 
 <br>
 
-<button id="addBtn" onclick="addDay()" disabled>+ เพิ่มรายการ</button>
+<button id="addBtn" onclick="addDay()" disabled>+ เพิ่มวัน</button>
 <button id="saveBtn" onclick="save()" disabled>💾 Save</button>
-
-<br><br>
-
-<div class="container">
-
-<div class="dateBar">
-วันที่:
-<input type="date" id="dateBox">
-</div>
-
-<div class="leagueBar">
-พรีเมียร์ลีกอังกฤษ (Premier League)
-<img src="https://upload.wikimedia.org/wikipedia/en/f/f2/Premier_League_Logo.svg">
-</div>
+<button onclick="toggleLog()">📜 Audit Log</button>
 
 <table id="table">
-
 <thead>
 <tr>
-<th>เวลา</th>
-<th>ทีมเจ้าบ้าน</th>
-<th>ราคาบอล</th>
-<th>ทีมเยือน</th>
-<th>รายชื่อ</th>
-<th>เบอร์โทร</th>
-<th>ยอดแทง</th>
-<th>ลบ</th>
+<th>วันที่</th>
+<th>ทุน</th>
+<th>กำไร</th>
+<th>-</th>
+<th>รวม</th>
+<th>ลบวัน</th>
 </tr>
 </thead>
-
 <tbody></tbody>
-
 <tfoot>
 <tr>
-<td colspan="6">รวมยอดแทง</td>
-<td id="sumแทง">0</td>
+<td>รวมทั้งหมด</td>
+<td id="sumทุน">0</td>
+<td id="sumกำไร">0</td>
+<td id="sumลบ">0</td>
+<td id="sumรวม">0</td>
 <td></td>
 </tr>
 </tfoot>
-
 </table>
 
-</div>
+<h3 id="logTitle" style="display:none">Audit Log</h3>
+<div id="logBox"></div>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, set, onValue, get, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDZ0iBQX1uJz_gf23M6gn8yQ6S90lGYDOc",
-  authDomain: "dictator-ball.firebaseapp.com",
-  databaseURL: "https://dictator-ball-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "dictator-ball",
-  storageBucket: "dictator-ball.firebasestorage.app",
-  messagingSenderId: "533340357926",
-  appId: "1:533340357926:web:a1eb15b77c335a7a57ade7"
+const firebaseConfig={
+apiKey:"AIzaSyDZ0iBQX1uJz_gf23M6gn8yQ6S90lGYDOc",
+authDomain:"dictator-ball.firebaseapp.com",
+databaseURL:"https://dictator-ball-default-rtdb.asia-southeast1.firebasedatabase.app",
+projectId:"dictator-ball"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const dataRef = ref(db,"table");
+const app=initializeApp(firebaseConfig);
+const db=getDatabase(app);
+
+const dataRef=ref(db,"table");
+const logRef=ref(db,"audit");
+const sessionRef=ref(db,"sessions");
+
+/* accounts */
+const accounts={
+"Yohan888":"dictator_yohan888"
+};
 
 let admin=false;
+let currentUser="";
+let deviceId=localStorage.getItem("dev")||crypto.randomUUID();
+localStorage.setItem("dev",deviceId);
 
-window.login=function(){
+/* auto login */
+let rememberedUser=localStorage.getItem("loginUser");
+if(rememberedUser){
 admin=true;
+currentUser=rememberedUser;
 addBtn.disabled=false;
 saveBtn.disabled=false;
 }
 
-window.logout=function(){
+/* login */
+window.login=async function(){
+let u=user.value,p=pass.value;
+if(accounts[u]!==p){alert("Wrong login");return;}
+
+let s=await get(ref(db,"sessions/"+u));
+if(s.exists()&&s.val()!==deviceId){
+alert("บัญชีนี้กำลังใช้งานอยู่");
+return;
+}
+
+set(ref(db,"sessions/"+u),deviceId);
+
+admin=true;
+currentUser=u;
+localStorage.setItem("loginUser",u);
+
+addBtn.disabled=false;
+saveBtn.disabled=false;
+
+log("LOGIN");
+}
+
+/* logout */
+window.logout=async function(){
+if(currentUser){
+await remove(ref(db,"sessions/"+currentUser));
+log("LOGOUT");
+}
 admin=false;
+currentUser="";
+localStorage.removeItem("loginUser");
+
 addBtn.disabled=true;
 saveBtn.disabled=true;
 }
 
+/* audit toggle */
+window.toggleLog=function(){
+if(!admin) return;
+logBox.style.display = logBox.style.display=="none"?"block":"none";
+logTitle.style.display = logTitle.style.display=="none"?"block":"none";
+}
+
+/* audit */
+function log(action){
+push(logRef,{
+user:currentUser,
+action:action,
+time:new Date().toLocaleString()
+});
+}
+
+onValue(logRef,s=>{
+if(!admin) return;
+let data=s.val();
+if(!data) return;
+
+logBox.innerHTML="";
+Object.values(data).slice(-20).reverse().forEach(d=>{
+logBox.innerHTML+=`<div>[${d.time}] ${d.user} → ${d.action}</div>`;
+});
+});
+
+/* table */
 function fmt(n){return Number(n).toLocaleString();}
 function parse(n){return Number(String(n).replace(/,/g,""))||0;}
 
 window.addDay=function(){
 if(!admin) return;
-
 let r=document.querySelector("#table tbody").insertRow();
 r.innerHTML=`
-<td><input type="time"></td>
-<td><input></td>
-<td><input></td>
-<td><input></td>
-<td><input></td>
-<td><input></td>
-<td><input value="0"></td>
+<td><input type=date></td>
+<td><input value=0></td>
+<td><input value=0></td>
+<td><input value=0></td>
+<td>0</td>
 <td><button onclick="removeRow(this)">X</button></td>`;
+log("ADD ROW");
 calc();
 }
 
 window.removeRow=function(b){
+if(!admin) return;
 b.parentNode.parentNode.remove();
+log("DELETE ROW");
 calc();
 }
 
 function calc(){
 let rows=document.querySelectorAll("#table tbody tr");
-let total=0;
+let s1=0,s2=0,s3=0,s4=0;
 
 rows.forEach(r=>{
-let v=parse(r.cells[6].children[0].value);
-r.cells[6].children[0].value=fmt(v);
-total+=v;
+let a=parse(r.cells[1].children[0].value);
+let b=parse(r.cells[2].children[0].value);
+let c=parse(r.cells[3].children[0].value);
+
+r.cells[1].children[0].value=fmt(a);
+r.cells[2].children[0].value=fmt(b);
+r.cells[3].children[0].value=fmt(c);
+
+let sum=a+b-c;
+r.cells[4].innerText=fmt(sum);
+
+s1+=a;s2+=b;s3+=c;s4+=sum;
 });
 
-sumแทง.innerText=fmt(total);
+sumทุน.innerText=fmt(s1);
+sumกำไร.innerText=fmt(s2);
+sumลบ.innerText=fmt(s3);
+sumรวม.innerText=fmt(s4);
 }
 
-document.addEventListener("input",calc);
-
 window.save=function(){
+if(!admin) return;
+
 let rows=document.querySelectorAll("#table tbody tr");
 let data=[];
-
 rows.forEach(r=>{
 data.push({
-time:r.cells[0].children[0].value,
-home:r.cells[1].children[0].value,
-price:r.cells[2].children[0].value,
-away:r.cells[3].children[0].value,
-name:r.cells[4].children[0].value,
-phone:r.cells[5].children[0].value,
-bet:parse(r.cells[6].children[0].value)
+date:r.cells[0].children[0].value,
+ทุน:parse(r.cells[1].children[0].value),
+กำไร:parse(r.cells[2].children[0].value),
+ลบ:parse(r.cells[3].children[0].value)
 });
 });
 
-set(dataRef,data)
-.then(()=>alert("Saved!"))
-.catch(e=>alert("Error: "+e.message));
+set(dataRef,data);
+log("SAVE TABLE");
+alert("Saved!");
 }
 
 onValue(dataRef,s=>{
 let data=s.val();
 if(!data) return;
-
 let tbody=document.querySelector("#table tbody");
 tbody.innerHTML="";
-
 data.forEach(d=>{
 let r=tbody.insertRow();
 r.innerHTML=`
-<td><input type="time" value="${d.time}"></td>
-<td><input value="${d.home}"></td>
-<td><input value="${d.price}"></td>
-<td><input value="${d.away}"></td>
-<td><input value="${d.name}"></td>
-<td><input value="${d.phone}"></td>
-<td><input value="${fmt(d.bet)}"></td>
+<td><input type=date value="${d.date}"></td>
+<td><input value="${fmt(d.ทุน)}"></td>
+<td><input value="${fmt(d.กำไร)}"></td>
+<td><input value="${fmt(d.ลบ)}"></td>
+<td>0</td>
 <td><button onclick="removeRow(this)">X</button></td>`;
 });
-
 calc();
 });
+
+document.addEventListener("input",calc);
 
 </script>
 </body>
