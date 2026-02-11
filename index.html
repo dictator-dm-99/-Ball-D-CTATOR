@@ -88,7 +88,7 @@ button {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDZ0iBQX1uJz_gf23M6gn8yQ6S90lGYDOc",
@@ -102,74 +102,69 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const dbRef = ref(db, "ball");
+const tableRef = ref(db, "ball");
 
-let data = [];
+const tbody = document.querySelector("tbody");
 
-window.save = function() {
-  set(dbRef, data);
-};
-
-window.addDay = function() {
-  const today = new Date().toLocaleDateString();
-  data.push([today,"0","0","0"]);
-  render();
-};
-
-function render() {
-  const tbody = document.querySelector("#table tbody");
-  tbody.innerHTML = "";
-
-  let sทุน=0, sกำไร=0, sลบ=0, sรวม=0;
-
-  data.forEach((row,i)=>{
-    const tr=document.createElement("tr");
-
-    row.forEach((cell,j)=>{
-      const td=document.createElement("td");
-      const input=document.createElement("input");
-      input.value=cell;
-      input.oninput=()=>{
-        data[i][j]=input.value;
-        render();
-      };
-      td.appendChild(input);
-      tr.appendChild(td);
-    });
-
-    const total = (+row[1]||0)+(+row[2]||0)-(+row[3]||0);
-    const tdTotal=document.createElement("td");
-    tdTotal.textContent=total;
-    tr.appendChild(tdTotal);
-
-    const del=document.createElement("td");
-    const btn=document.createElement("button");
-    btn.textContent="X";
-    btn.onclick=()=>{
-      data.splice(i,1);
-      render();
-    };
-    del.appendChild(btn);
-    tr.appendChild(del);
-
-    tbody.appendChild(tr);
-
-    sทุน+=+row[1]||0;
-    sกำไร+=+row[2]||0;
-    sลบ+=+row[3]||0;
-    sรวม+=total;
-  });
-
-  document.getElementById("sumทุน").textContent=sทุน;
-  document.getElementById("sumกำไร").textContent=sกำไร;
-  document.getElementById("sumลบ").textContent=sลบ;
-  document.getElementById("sumรวม").textContent=sรวม;
+function format(n){
+  return Number(n||0).toLocaleString();
 }
 
-onValue(dbRef,snap=>{
-  data=snap.val()||[];
-  render();
+onValue(tableRef, snapshot => {
+  tbody.innerHTML = "";
+
+  let totalทุน=0, totalกำไร=0, totalลบ=0, totalรวม=0;
+
+  snapshot.forEach(child => {
+    const d = child.val();
+
+    totalทุน += Number(d.ทุน||0);
+    totalกำไร += Number(d.กำไร||0);
+    totalลบ += Number(d.ลบ||0);
+    totalรวม += Number(d.รวม||0);
+
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${d.วันที่}</td>
+      <td>${format(d.ทุน)}</td>
+      <td>${format(d.กำไร)}</td>
+      <td>${format(d.ลบ)}</td>
+      <td>${format(d.รวม)}</td>
+      <td><button onclick="del('${child.key}')">X</button></td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+
+  // 🔥 แถวรวมทั้งหมด
+  const sum = document.createElement("tr");
+  sum.style.fontWeight="bold";
+  sum.innerHTML = `
+    <td>รวมทั้งหมด</td>
+    <td>${format(totalทุน)}</td>
+    <td>${format(totalกำไร)}</td>
+    <td>${format(totalลบ)}</td>
+    <td>${format(totalรวม)}</td>
+    <td></td>
+  `;
+  tbody.appendChild(sum);
 });
+
+window.addRow = function(){
+  const วันที่ = prompt("วันที่");
+  const ทุน = prompt("ทุน");
+  const กำไร = prompt("กำไร");
+  const ลบ = prompt("ลบ");
+
+  const รวม = Number(ทุน||0) + Number(กำไร||0) - Number(ลบ||0);
+
+  push(tableRef, {วันที่, ทุน, กำไร, ลบ, รวม});
+}
+
+window.del = function(key){
+  remove(ref(db, "ball/"+key));
+}
 </script>
 
 </body>
