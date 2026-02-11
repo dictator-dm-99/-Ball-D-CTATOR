@@ -17,14 +17,23 @@ body{
   font-size:48px;
   font-weight:bold;
   margin:20px;
-  animation:logoFloat 3s ease-in-out infinite;
+  animation:shake 2s infinite;
 }
-@keyframes logoFloat{
-  0%{transform:translateY(0)}
-  50%{transform:translateY(-8px)}
-  100%{transform:translateY(0)}
+@keyframes shake{
+  0%{transform:translate(0)}
+  25%{transform:translate(1px)}
+  50%{transform:translate(-1px)}
+  75%{transform:translate(1px)}
+  100%{transform:translate(0)}
 }
 
+/* login */
+#loginBox input{
+  width:140px;
+  padding:5px;
+}
+
+/* table */
 table{
   width:90%;
   margin:auto;
@@ -33,76 +42,45 @@ table{
 
 th{
   background:#111;
-  padding:10px;
-  border:1px solid #333;
+  color:white;
+  padding:8px;
+  border:1px solid #555;
 }
 
 td{
-  background:#ddd;
-  border:1px solid #555;
-  padding:5px;
-}
-
-input{
-  width:95%;
-  border:1px solid #aaa;
-  padding:4px;
   background:white;
-  text-align:center;
+  color:black;
+  padding:6px;
+  border:1px solid #555;
 }
 
-/* profit animation */
-.profitNum{
-  color:#00ff88;
-  font-weight:bold;
-  display:inline-block;
-  animation:bounce .7s infinite alternate;
-}
-@keyframes bounce{
-  from{transform:scale(1)}
-  to{transform:scale(1.2)}
-}
-
-/* loss animation */
-.lossNum{
-  color:red;
-  font-weight:bold;
-  animation:blink 1s infinite;
-}
-@keyframes blink{
-  50%{opacity:0}
-}
-
-/* total row (no animation) */
 tfoot td{
   background:black;
   color:white;
   font-weight:bold;
 }
 
-/* audit */
-#auditBox{
-  display:none;
-  width:90%;
-  margin:auto;
-  border:1px solid #333;
-  padding:10px;
-  text-align:left;
-  background:#111;
-  height:200px;
-  overflow:auto;
+/* ช่องกรอบเล็ก */
+input{
+  width:95%;
+  border:1px solid #aaa;
+  padding:3px;
+  text-align:center;
+  background:white;
+  box-shadow: inset 0 0 3px #ccc;
 }
 
-/* mobile */
-@media(max-width:768px){
-  table{display:none;}
-  .mobileRow{
-    background:#111;
-    border:1px solid #333;
-    margin:10px;
-    padding:10px;
-    text-align:left;
-  }
+/* audit */
+#logBox{
+  display:none;
+  margin:20px;
+  border:1px solid #555;
+  padding:10px;
+  height:150px;
+  overflow:auto;
+  background:#111;
+  font-size:12px;
+  text-align:left;
 }
 </style>
 </head>
@@ -112,7 +90,7 @@ tfoot td{
 <div class="logoText">D<span style="color:red">!</span>CTATOR</div>
 <h2>ตารางยอดบอล</h2>
 
-<div>
+<div id="loginBox">
 <input id="user" placeholder="Username">
 <input id="pass" type="password" placeholder="Password">
 <button onclick="login()">Login</button>
@@ -121,9 +99,9 @@ tfoot td{
 
 <br>
 
-<button onclick="addDay()">+ เพิ่มวัน</button>
-<button onclick="save()">💾 Save</button>
-<button onclick="toggleAudit()">Audit Log</button>
+<button id="addBtn" onclick="addDay()" disabled>+ เพิ่มวัน</button>
+<button id="saveBtn" onclick="save()" disabled>💾 Save</button>
+<button onclick="toggleLog()">📜 Audit Log</button>
 
 <table id="table">
 <thead>
@@ -136,9 +114,7 @@ tfoot td{
 <th>ลบวัน</th>
 </tr>
 </thead>
-
 <tbody></tbody>
-
 <tfoot>
 <tr>
 <td>รวมทั้งหมด</td>
@@ -151,15 +127,30 @@ tfoot td{
 </tfoot>
 </table>
 
-<div id="mobileView"></div>
+<h3 id="logTitle" style="display:none">Audit Log</h3>
+<div id="logBox"></div>
 
-<h3 onclick="toggleAudit()" style="cursor:pointer">Audit Log</h3>
-<div id="auditBox"></div>
+<script type="module">
 
-<script>
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, set, onValue, get, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig={
+apiKey:"AIzaSyDZ0iBQX1uJz_gf23M6gn8yQ6S90lGYDOc",
+authDomain:"dictator-ball.firebaseapp.com",
+databaseURL:"https://dictator-ball-default-rtdb.asia-southeast1.firebasedatabase.app",
+projectId:"dictator-ball"
+};
+
+const app=initializeApp(firebaseConfig);
+const db=getDatabase(app);
+
+const dataRef=ref(db,"table");
+const logRef=ref(db,"audit");
+const sessionRef=ref(db,"sessions");
 
 /* accounts */
-const ACC={
+const accounts={
 "Pim888_":"dictator_888_pim",
 "Yohan888_":"dictator_yohan_888",
 "Jo888_":"Jo_dictator_888",
@@ -167,120 +158,170 @@ const ACC={
 "Joommeng_":"Joommeng888"
 };
 
-let ADMIN=false;
+let admin=false;
+let currentUser="";
+let deviceId=localStorage.getItem("dev")||crypto.randomUUID();
+localStorage.setItem("dev",deviceId);
+
+/* auto login */
+let rememberedUser=localStorage.getItem("loginUser");
+if(rememberedUser){
+admin=true;
+currentUser=rememberedUser;
+addBtn.disabled=false;
+saveBtn.disabled=false;
+}
 
 /* login */
-function login(){
-let u=user.value.trim();
-let p=pass.value.trim();
+window.login=async function(){
+let u=user.value,p=pass.value;
+if(accounts[u]!==p){alert("Wrong login");return;}
 
-if(ACC[u]===p){
-if(localStorage.getItem("lock_"+u)){
-alert("บัญชีใช้งานอยู่");
+let s=await get(ref(db,"sessions/"+u));
+if(s.exists()&&s.val()!==deviceId){
+alert("บัญชีนี้กำลังใช้งานอยู่");
 return;
 }
-localStorage.setItem("lock_"+u,"1");
-localStorage.setItem("admin",u);
-ADMIN=true;
-log(u+" LOGIN");
-alert("login สำเร็จ");
-}
+
+set(ref(db,"sessions/"+u),deviceId);
+
+admin=true;
+currentUser=u;
+localStorage.setItem("loginUser",u);
+
+addBtn.disabled=false;
+saveBtn.disabled=false;
+
+log("LOGIN");
 }
 
-function logout(){
-let u=localStorage.getItem("admin");
-if(!u)return;
-localStorage.removeItem("lock_"+u);
-localStorage.removeItem("admin");
-ADMIN=false;
-log(u+" LOGOUT");
-alert("logout");
+/* logout */
+window.logout=async function(){
+if(currentUser){
+await remove(ref(db,"sessions/"+currentUser));
+log("LOGOUT");
+}
+admin=false;
+currentUser="";
+localStorage.removeItem("loginUser");
+
+addBtn.disabled=true;
+saveBtn.disabled=true;
 }
 
-/* add row */
-function addDay(){
-if(!ADMIN)return alert("login ก่อน");
-let r=table.tBodies[0].insertRow();
+/* audit toggle */
+window.toggleLog=function(){
+if(!admin) return;
+logBox.style.display = logBox.style.display=="none"?"block":"none";
+logTitle.style.display = logTitle.style.display=="none"?"block":"none";
+}
+
+/* audit */
+function log(action){
+push(logRef,{
+user:currentUser,
+action:action,
+time:new Date().toLocaleString()
+});
+}
+
+onValue(logRef,s=>{
+if(!admin) return;
+let data=s.val();
+if(!data) return;
+
+logBox.innerHTML="";
+Object.values(data).slice(-20).reverse().forEach(d=>{
+logBox.innerHTML+=`<div>[${d.time}] ${d.user} → ${d.action}</div>`;
+});
+});
+
+/* table */
+function fmt(n){return Number(n).toLocaleString();}
+function parse(n){return Number(String(n).replace(/,/g,""))||0;}
+
+window.addDay=function(){
+if(!admin) return;
+let r=document.querySelector("#table tbody").insertRow();
 r.innerHTML=`
-<td><input type="date"></td>
-<td><input></td>
-<td><input></td>
-<td><input></td>
-<td><span>0</span></td>
-<td><button onclick="this.closest('tr').remove();calc()">X</button></td>
-`;
+<td><input type=date></td>
+<td><input value=0></td>
+<td><input value=0></td>
+<td><input value=0></td>
+<td>0</td>
+<td><button onclick="removeRow(this)">X</button></td>`;
+log("ADD ROW");
+calc();
 }
 
-/* calc */
-function fmt(n){return Number(n||0).toLocaleString();}
-function parse(v){return Number(v.replace(/,/g,''))||0;}
+window.removeRow=function(b){
+if(!admin) return;
+b.parentNode.parentNode.remove();
+log("DELETE ROW");
+calc();
+}
 
 function calc(){
 let rows=document.querySelectorAll("#table tbody tr");
-
 let s1=0,s2=0,s3=0,s4=0;
 
 rows.forEach(r=>{
-let t=parse(r.cells[1].children[0].value);
-let p=parse(r.cells[2].children[0].value);
-let l=parse(r.cells[3].children[0].value);
+let a=parse(r.cells[1].children[0].value);
+let b=parse(r.cells[2].children[0].value);
+let c=parse(r.cells[3].children[0].value);
 
-r.cells[1].children[0].value=fmt(t);
-r.cells[2].children[0].value=fmt(p);
-r.cells[3].children[0].value=fmt(l);
+r.cells[1].children[0].value=fmt(a);
+r.cells[2].children[0].value=fmt(b);
+r.cells[3].children[0].value=fmt(c);
 
-let sum=t+p-l;
+let sum=a+b-c;
+r.cells[4].innerText=fmt(sum);
 
-r.cells[4].innerHTML=fmt(sum);
-
-r.cells[2].children[0].className="profitNum";
-r.cells[3].children[0].className="lossNum";
-
-s1+=t; s2+=p; s3+=l; s4+=sum;
+s1+=a;s2+=b;s3+=c;s4+=sum;
 });
 
 sumทุน.innerText=fmt(s1);
 sumกำไร.innerText=fmt(s2);
 sumลบ.innerText=fmt(s3);
 sumรวม.innerText=fmt(s4);
-
-buildMobile();
 }
 
-/* mobile */
-function buildMobile(){
-mobileView.innerHTML="";
-document.querySelectorAll("#table tbody tr").forEach(r=>{
-let box=document.createElement("div");
-box.className="mobileRow";
-box.innerHTML=`
-วันที่: ${r.cells[0].children[0].value}<br>
-ทุน: ${r.cells[1].children[0].value}<br>
-กำไร: ${r.cells[2].children[0].value}<br>
-- : ${r.cells[3].children[0].value}<br>
-รวม: ${r.cells[4].innerText}
-`;
-mobileView.appendChild(box);
+window.save=function(){
+if(!admin) return;
+
+let rows=document.querySelectorAll("#table tbody tr");
+let data=[];
+rows.forEach(r=>{
+data.push({
+date:r.cells[0].children[0].value,
+ทุน:parse(r.cells[1].children[0].value),
+กำไร:parse(r.cells[2].children[0].value),
+ลบ:parse(r.cells[3].children[0].value)
 });
+});
+
+set(dataRef,data);
+log("SAVE TABLE");
+alert("Saved!");
 }
 
-/* save */
-function save(){
-if(!ADMIN)return alert("login ก่อน");
-log(localStorage.getItem("admin")+" SAVE");
-alert("saved");
-}
-
-/* audit */
-function log(t){
-let now=new Date().toLocaleString();
-auditBox.innerHTML=`[${now}] ${t}<br>`+auditBox.innerHTML;
-}
-
-function toggleAudit(){
-auditBox.style.display=
-auditBox.style.display=="none"?"block":"none";
-}
+onValue(dataRef,s=>{
+let data=s.val();
+if(!data) return;
+let tbody=document.querySelector("#table tbody");
+tbody.innerHTML="";
+data.forEach(d=>{
+let r=tbody.insertRow();
+r.innerHTML=`
+<td><input type=date value="${d.date}"></td>
+<td><input value="${fmt(d.ทุน)}"></td>
+<td><input value="${fmt(d.กำไร)}"></td>
+<td><input value="${fmt(d.ลบ)}"></td>
+<td>0</td>
+<td><button onclick="removeRow(this)">X</button></td>`;
+});
+calc();
+});
 
 document.addEventListener("input",calc);
 
