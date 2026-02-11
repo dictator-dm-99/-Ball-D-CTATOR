@@ -5,63 +5,60 @@
 <title>D!CTATOR</title>
 
 <style>
-body {
-  background:black;
+body{
+  background:#000;
   color:white;
-  font-family:Arial;
+  font-family:sans-serif;
   text-align:center;
 }
 
-.logoText {
-  font-size:60px;
-  font-weight:bold;
-  margin-top:20px;
+h1{margin-top:20px;}
+
+button{
+  padding:6px 12px;
+  margin:5px;
+  cursor:pointer;
 }
 
-.logoText span { color:red; }
-
-table {
+table{
   width:90%;
-  margin:auto;
+  margin:20px auto;
   border-collapse:collapse;
 }
 
-th {
+th{
   background:#111;
   color:white;
   padding:8px;
-  border:1px solid #555;
+  border:1px solid #444;
 }
 
-td {
+td{
   background:white;
+  color:black;
   padding:6px;
   border:1px solid #555;
 }
 
-tfoot td {
-  color: red;
-  font-weight: bold;
+/* ✅ แถวรวมทั้งหมด = สีดำ */
+tfoot td{
+  color:black;
+  font-weight:bold;
+  background:#eaeaea;
 }
 
-input {
+input{
   width:100%;
   border:none;
   text-align:center;
   background:white;
-}
-
-button {
-  padding:6px 10px;
-  margin:5px;
-  cursor:pointer;
 }
 </style>
 </head>
 
 <body>
 
-<div class="logoText">D<span>!</span>CTATOR</div>
+<h1>D!CTATOR</h1>
 <h2>ตารางยอดบอล</h2>
 
 <button onclick="addDay()">+ เพิ่มวัน</button>
@@ -78,7 +75,9 @@ button {
 <th>ลบวัน</th>
 </tr>
 </thead>
-<tbody></tbody>
+
+<tbody id="tbody"></tbody>
+
 <tfoot>
 <tr>
 <td>รวมทั้งหมด</td>
@@ -89,92 +88,99 @@ button {
 <td></td>
 </tr>
 </tfoot>
+
 </table>
 
+<!-- Firebase -->
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDZ0iBQX1uJz_gf23M6gn8yQ6S90lGYDOc",
+  apiKey: "YOUR_KEY",
   authDomain: "dictator-ball.firebaseapp.com",
   databaseURL: "https://dictator-ball-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "dictator-ball",
-  storageBucket: "dictator-ball.firebasestorage.app",
-  messagingSenderId: "533340357926",
-  appId: "1:533340357926:web:a1eb15b77c335a7a57ade7"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const dbRef = ref(db, "ball");
 
-let data = [];
+window.addDay = function(){
+  const tbody = document.getElementById("tbody");
+  const row = tbody.insertRow();
 
-window.save = function() {
-  set(dbRef, data);
-};
+  row.innerHTML = `
+  <td><input type="date"></td>
+  <td><input type="number" value="0"></td>
+  <td><input type="number" value="0"></td>
+  <td><input type="number" value="0"></td>
+  <td>0</td>
+  <td><button onclick="this.closest('tr').remove(); calc()">X</button></td>
+  `;
 
-window.addDay = function() {
-  const today = new Date().toLocaleDateString();
-  data.push([today,"0","0","0"]);
-  render();
-};
-
-function render() {
-  const tbody = document.querySelector("#table tbody");
-  tbody.innerHTML = "";
-
-  let sทุน=0, sกำไร=0, sลบ=0, sรวม=0;
-
-  data.forEach((row,i)=>{
-    const tr=document.createElement("tr");
-
-    row.forEach((cell,j)=>{
-      const td=document.createElement("td");
-      const input=document.createElement("input");
-      input.value=cell;
-      input.oninput=()=>{
-        data[i][j]=input.value;
-        render();
-      };
-      td.appendChild(input);
-      tr.appendChild(td);
-    });
-
-    const total = (+row[1]||0)+(+row[2]||0)-(+row[3]||0);
-    const tdTotal=document.createElement("td");
-    tdTotal.textContent=total;
-    tr.appendChild(tdTotal);
-
-    const del=document.createElement("td");
-    const btn=document.createElement("button");
-    btn.textContent="X";
-    btn.onclick=()=>{
-      data.splice(i,1);
-      render();
-    };
-    del.appendChild(btn);
-    tr.appendChild(del);
-
-    tbody.appendChild(tr);
-
-    sทุน+=+row[1]||0;
-    sกำไร+=+row[2]||0;
-    sลบ+=+row[3]||0;
-    sรวม+=total;
+  row.querySelectorAll("input").forEach(i=>{
+    i.oninput = calc;
   });
 
-  document.getElementById("sumทุน").textContent=sทุน;
-  document.getElementById("sumกำไร").textContent=sกำไร;
-  document.getElementById("sumลบ").textContent=sลบ;
-  document.getElementById("sumรวม").textContent=sรวม;
+  calc();
+};
+
+window.calc = function(){
+  let sumทุน=0,sumกำไร=0,sumลบ=0,sumรวม=0;
+
+  document.querySelectorAll("#tbody tr").forEach(r=>{
+    let ทุน=+r.cells[1].children[0].value;
+    let กำไร=+r.cells[2].children[0].value;
+    let ลบ=+r.cells[3].children[0].value;
+
+    let รวม=ทุน+กำไร-ลบ;
+    r.cells[4].innerText=รวม;
+
+    sumทุน+=ทุน;
+    sumกำไร+=กำไร;
+    sumลบ+=ลบ;
+    sumรวม+=รวม;
+  });
+
+  document.getElementById("sumทุน").innerText=sumทุน;
+  document.getElementById("sumกำไร").innerText=sumกำไร;
+  document.getElementById("sumลบ").innerText=sumลบ;
+  document.getElementById("sumรวม").innerText=sumรวม;
+};
+
+window.save = async function(){
+  const data=[];
+  document.querySelectorAll("#tbody tr").forEach(r=>{
+    data.push({
+      date:r.cells[0].children[0].value,
+      ทุน:r.cells[1].children[0].value,
+      กำไร:r.cells[2].children[0].value,
+      ลบ:r.cells[3].children[0].value
+    });
+  });
+
+  await set(ref(db,"table"),data);
+  alert("Saved!");
+};
+
+async function load(){
+  const snap = await get(ref(db,"table"));
+  if(!snap.exists()) return;
+
+  snap.val().forEach(d=>{
+    addDay();
+    const r=document.querySelector("#tbody tr:last-child");
+    r.cells[0].children[0].value=d.date;
+    r.cells[1].children[0].value=d.ทุน;
+    r.cells[2].children[0].value=d.กำไร;
+    r.cells[3].children[0].value=d.ลบ;
+  });
+
+  calc();
 }
 
-onValue(dbRef,snap=>{
-  data=snap.val()||[];
-  render();
-});
+load();
 </script>
 
 </body>
