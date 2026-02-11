@@ -2,30 +2,29 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>D!CTATOR</title>
+<title>DICTATOR</title>
 
 <style>
 body{
   background:black;
   color:white;
-  font-family:Arial;
+  font-family:sans-serif;
   text-align:center;
 }
 
-/* 🔥 logo สั่น */
-.logoText{
-  font-size:48px;
+.logo{
+  font-size:60px;
   font-weight:bold;
-  margin:20px;
+  margin-top:20px;
   animation:shake 2s infinite;
 }
 
 @keyframes shake{
-  0%{transform:translate(0)}
-  25%{transform:translate(1px,0)}
-  50%{transform:translate(-1px,0)}
-  75%{transform:translate(1px,0)}
-  100%{transform:translate(0)}
+  0%{transform:translateX(0)}
+  25%{transform:translateX(-3px)}
+  50%{transform:translateX(3px)}
+  75%{transform:translateX(-3px)}
+  100%{transform:translateX(0)}
 }
 
 table{
@@ -44,8 +43,8 @@ th{
 td{
   background:white;
   color:black;
-  padding:6px;
   border:1px solid #555;
+  padding:6px;
 }
 
 tfoot td{
@@ -62,19 +61,40 @@ input{
 }
 
 button{
-  padding:6px 12px;
-  margin:5px;
-  cursor:pointer;
+  margin:10px;
+  padding:5px 12px;
+}
+
+.profit{
+  color:limegreen;
+  font-weight:bold;
+  animation:pop 0.4s ease;
+}
+
+@keyframes pop{
+  0%{transform:scale(1)}
+  50%{transform:scale(1.3)}
+  100%{transform:scale(1)}
+}
+
+.loss{
+  color:red;
+  font-weight:bold;
+  animation:blink 1s infinite;
+}
+
+@keyframes blink{
+  50%{opacity:0.2}
 }
 </style>
 </head>
 
 <body>
 
-<div class="logoText">D<span style="color:red">!</span>CTATOR</div>
+<div class="logo">D!CTATOR</div>
 <h2>ตารางยอดบอล</h2>
 
-<button onclick="addDay()">+ เพิ่มวัน</button>
+<button onclick="addRow()">+ เพิ่มวัน</button>
 <button onclick="save()">💾 Save</button>
 
 <table id="table">
@@ -88,7 +108,6 @@ button{
 <th>ลบวัน</th>
 </tr>
 </thead>
-
 <tbody></tbody>
 
 <tfoot>
@@ -101,134 +120,107 @@ button{
 <td></td>
 </tr>
 </tfoot>
-
 </table>
 
 <script type="module">
-
-// 🔥 Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDZ0iBQX1uJz_gf23M6gn8yQ6S90lGYDOc",
-  authDomain: "dictator-ball.firebaseapp.com",
-  databaseURL: "https://dictator-ball-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "dictator-ball",
-  storageBucket: "dictator-ball.appspot.com",
-  messagingSenderId: "533340357926",
-  appId: "1:533340357926:web:a1eb15b77c335a7a57ade7"
+ apiKey: "AIzaSyDZ0iBQX1uJz_gf23M6gn8yQ6S90lGYDOc",
+ authDomain: "dictator-ball.firebaseapp.com",
+ databaseURL: "https://dictator-ball-default-rtdb.asia-southeast1.firebasedatabase.app",
+ projectId: "dictator-ball"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const dataRef = ref(db, "table");
+const dataRef = ref(db, "rows");
 
-// format comma
+window.addRow = function(){
+ const tbody = document.querySelector("#table tbody");
+ const r = tbody.insertRow();
+
+ r.innerHTML = `
+ <td><input type="date"></td>
+ <td><input type="number" oninput="calc()"></td>
+ <td><input type="number" oninput="calc()"></td>
+ <td><input type="number" oninput="calc()"></td>
+ <td class="result">0</td>
+ <td><button onclick="delRow(this)">X</button></td>
+ `;
+}
+
+window.delRow = function(btn){
+ btn.parentNode.parentNode.remove();
+ calc();
+}
+
 function fmt(n){
-  return Number(n).toLocaleString();
+ return Number(n).toLocaleString();
 }
 
-// parse number remove comma
-function parse(n){
-  return Number(String(n).replace(/,/g,"")) || 0;
-}
+window.calc = function(){
+ let sumทุน=0,sumกำไร=0,sumลบ=0,sumรวม=0;
 
-window.addDay = function(){
+ document.querySelectorAll("#table tbody tr").forEach(r=>{
+  let t=+r.cells[1].firstChild.value||0;
+  let g=+r.cells[2].firstChild.value||0;
+  let l=+r.cells[3].firstChild.value||0;
+  let total=t+g-l;
 
-  let tbody = document.querySelector("#table tbody");
-  let row = tbody.insertRow();
+  let cell=r.cells[4];
+  cell.innerText=fmt(total);
+  cell.classList.remove("profit","loss");
 
-  row.innerHTML = `
-  <td><input type="date"></td>
-  <td><input value="0"></td>
-  <td><input value="0"></td>
-  <td><input value="0"></td>
-  <td>0</td>
-  <td><button onclick="removeRow(this)">X</button></td>
-  `;
+  if(total>0) cell.classList.add("profit");
+  if(total<0) cell.classList.add("loss");
 
-  calc();
-}
+  sumทุน+=t;
+  sumกำไร+=g;
+  sumลบ+=l;
+  sumรวม+=total;
+ });
 
-window.removeRow = function(btn){
-  btn.parentNode.parentNode.remove();
-  calc();
-}
+ document.getElementById("sumทุน").innerText=fmt(sumทุน);
+ document.getElementById("sumกำไร").innerText=fmt(sumกำไร);
+ document.getElementById("sumลบ").innerText=fmt(sumลบ);
 
-function calc(){
-
-  let rows = document.querySelectorAll("#table tbody tr");
-
-  let sumทุน=0,sumกำไร=0,sumลบ=0,sumรวม=0;
-
-  rows.forEach(r=>{
-    let ทุน = parse(r.cells[1].children[0].value);
-    let กำไร = parse(r.cells[2].children[0].value);
-    let ลบ = parse(r.cells[3].children[0].value);
-
-    r.cells[1].children[0].value = fmt(ทุน);
-    r.cells[2].children[0].value = fmt(กำไร);
-    r.cells[3].children[0].value = fmt(ลบ);
-
-    let รวม = ทุน + กำไร - ลบ;
-
-    r.cells[4].innerText = fmt(รวม);
-
-    sumทุน += ทุน;
-    sumกำไร += กำไร;
-    sumลบ += ลบ;
-    sumรวม += รวม;
-  });
-
-  document.getElementById("sumทุน").innerText = fmt(sumทุน);
-  document.getElementById("sumกำไร").innerText = fmt(sumกำไร);
-  document.getElementById("sumลบ").innerText = fmt(sumลบ);
-  document.getElementById("sumรวม").innerText = fmt(sumรวม);
+ let totalCell=document.getElementById("sumรวม");
+ totalCell.innerText=fmt(sumรวม);
+ totalCell.classList.remove("profit","loss");
+ if(sumรวม>0) totalCell.classList.add("profit");
+ if(sumรวม<0) totalCell.classList.add("loss");
 }
 
 window.save = function(){
-
-  let rows = document.querySelectorAll("#table tbody tr");
-  let data = [];
-
-  rows.forEach(r=>{
-    data.push({
-      date: r.cells[0].children[0].value,
-      ทุน: parse(r.cells[1].children[0].value),
-      กำไร: parse(r.cells[2].children[0].value),
-      ลบ: parse(r.cells[3].children[0].value)
-    });
+ const rows=[];
+ document.querySelectorAll("#table tbody tr").forEach(r=>{
+  rows.push({
+   d:r.cells[0].firstChild.value,
+   t:r.cells[1].firstChild.value,
+   g:r.cells[2].firstChild.value,
+   l:r.cells[3].firstChild.value
   });
-
-  set(dataRef, data);
-  alert("Saved!");
+ });
+ set(dataRef,rows);
+ alert("Saved!");
 }
 
-onValue(dataRef, snap=>{
-  let data = snap.val();
-  if(!data) return;
-
-  let tbody = document.querySelector("#table tbody");
-  tbody.innerHTML="";
-
-  data.forEach(d=>{
-    let row = tbody.insertRow();
-
-    row.innerHTML = `
-    <td><input type="date" value="${d.date}"></td>
-    <td><input value="${fmt(d.ทุน)}"></td>
-    <td><input value="${fmt(d.กำไร)}"></td>
-    <td><input value="${fmt(d.ลบ)}"></td>
-    <td>0</td>
-    <td><button onclick="removeRow(this)">X</button></td>
-    `;
-  });
-
-  calc();
+onValue(dataRef,snap=>{
+ const data=snap.val()||[];
+ const tbody=document.querySelector("#table tbody");
+ tbody.innerHTML="";
+ data.forEach(x=>{
+  addRow();
+  const r=tbody.lastChild;
+  r.cells[0].firstChild.value=x.d;
+  r.cells[1].firstChild.value=x.t;
+  r.cells[2].firstChild.value=x.g;
+  r.cells[3].firstChild.value=x.l;
+ });
+ calc();
 });
-
-document.addEventListener("input", calc);
 
 </script>
 
