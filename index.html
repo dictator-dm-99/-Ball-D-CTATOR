@@ -12,59 +12,61 @@ body{
   text-align:center;
 }
 
+/* logo animation */
 .logoText{
   font-size:48px;
   font-weight:bold;
   margin:20px;
-  animation:shake 2s infinite;
+  animation:float 3s ease-in-out infinite;
+}
+@keyframes float{
+  0%{transform:translateY(0)}
+  50%{transform:translateY(-6px)}
+  100%{transform:translateY(0)}
 }
 
-@keyframes shake{
-  0%{transform:translate(0)}
-  25%{transform:translate(1px)}
-  50%{transform:translate(-1px)}
-  75%{transform:translate(1px)}
-  100%{transform:translate(0)}
-}
-
+/* login box */
 #loginBox input{
   width:140px;
   padding:5px;
+  margin:2px;
 }
 
+/* table */
 table{
   width:90%;
   margin:auto;
   border-collapse:collapse;
 }
-
 th{
   background:#111;
   color:white;
   padding:8px;
   border:1px solid #555;
 }
-
 td{
   background:white;
   color:black;
   padding:6px;
   border:1px solid #555;
 }
-
 tfoot td{
   background:black;
   color:white;
   font-weight:bold;
 }
 
-input{
-  width:100%;
-  border:none;
+/* input box inside cell */
+td input{
+  width:90%;
+  padding:3px;
+  border:1px solid #aaa;
+  border-radius:4px;
   text-align:center;
-  background:white;
+  background:#fafafa;
 }
 
+/* audit */
 #logBox{
   display:none;
   margin:20px;
@@ -91,8 +93,11 @@ input{
 <button onclick="logout()">Logout</button>
 </div>
 
+<br>
+
 <button id="addBtn" onclick="addDay()" disabled>+ เพิ่มวัน</button>
 <button id="saveBtn" onclick="save()" disabled>💾 Save</button>
+<button id="toggleLog" onclick="toggleLog()" disabled>Audit Log</button>
 
 <table id="table">
 <thead>
@@ -154,15 +159,12 @@ let currentUser="";
 let deviceId=localStorage.getItem("dev")||crypto.randomUUID();
 localStorage.setItem("dev",deviceId);
 
-/* auto login if remembered */
+/* auto login */
 let rememberedUser=localStorage.getItem("loginUser");
 if(rememberedUser){
 admin=true;
 currentUser=rememberedUser;
-addBtn.disabled=false;
-saveBtn.disabled=false;
-logBox.style.display="block";
-logTitle.style.display="block";
+unlockAdmin();
 }
 
 /* login */
@@ -182,29 +184,42 @@ admin=true;
 currentUser=u;
 localStorage.setItem("loginUser",u);
 
-addBtn.disabled=false;
-saveBtn.disabled=false;
-logBox.style.display="block";
-logTitle.style.display="block";
-
+unlockAdmin();
 log("LOGIN");
 }
 
-/* logout = unlock account */
+/* logout */
 window.logout=async function(){
 if(currentUser){
 await remove(ref(db,"sessions/"+currentUser));
 log("LOGOUT");
 }
-
 admin=false;
 currentUser="";
 localStorage.removeItem("loginUser");
+lockAdmin();
+}
 
+/* admin lock/unlock */
+function unlockAdmin(){
+addBtn.disabled=false;
+saveBtn.disabled=false;
+toggleLog.disabled=false;
+}
+function lockAdmin(){
 addBtn.disabled=true;
 saveBtn.disabled=true;
+toggleLog.disabled=true;
 logBox.style.display="none";
 logTitle.style.display="none";
+}
+
+/* audit toggle */
+window.toggleLog=function(){
+if(!admin) return;
+let show=logBox.style.display==="none";
+logBox.style.display=show?"block":"none";
+logTitle.style.display=show?"block":"none";
 }
 
 /* audit */
@@ -227,10 +242,11 @@ logBox.innerHTML+=`<div>[${d.time}] ${d.user} → ${d.action}</div>`;
 });
 });
 
-/* table */
+/* helpers */
 function fmt(n){return Number(n).toLocaleString();}
 function parse(n){return Number(String(n).replace(/,/g,""))||0;}
 
+/* add row */
 window.addDay=function(){
 if(!admin) return;
 let r=document.querySelector("#table tbody").insertRow();
@@ -245,6 +261,7 @@ log("ADD ROW");
 calc();
 }
 
+/* remove row */
 window.removeRow=function(b){
 if(!admin) return;
 b.parentNode.parentNode.remove();
@@ -252,6 +269,7 @@ log("DELETE ROW");
 calc();
 }
 
+/* calc */
 function calc(){
 let rows=document.querySelectorAll("#table tbody tr");
 let s1=0,s2=0,s3=0,s4=0;
@@ -277,6 +295,7 @@ sumลบ.innerText=fmt(s3);
 sumรวม.innerText=fmt(s4);
 }
 
+/* save */
 window.save=function(){
 if(!admin) return;
 
@@ -296,6 +315,7 @@ log("SAVE TABLE");
 alert("Saved!");
 }
 
+/* load */
 onValue(dataRef,s=>{
 let data=s.val();
 if(!data) return;
@@ -307,7 +327,7 @@ r.innerHTML=`
 <td><input type=date value="${d.date}"></td>
 <td><input value="${fmt(d.ทุน)}"></td>
 <td><input value="${fmt(d.กำไร)}"></td>
-<td><input value="${fmt(d.ลบ)}"></td>
+<td><input value="${fmt(d.-)}"></td>
 <td>0</td>
 <td><button onclick="removeRow(this)">X</button></td>`;
 });
