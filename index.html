@@ -19,18 +19,33 @@ body{
   margin:20px;
 }
 
-/* เด้งเฉพาะตัวเลขกำไร */
+/* กำไร = เขียวเด้ง */
 .profitNum{
-  color:#00ff66;
+  color:#00ff88;
   font-weight:bold;
   display:inline-block;
-  animation:profitBounce 1s infinite alternate;
+  animation:bounce 0.8s ease infinite;
 }
 
-@keyframes profitBounce{
-  from{ transform:scale(1); }
-  to{ transform:scale(1.25); }
+@keyframes bounce{
+  0%{transform:scale(1)}
+  50%{transform:scale(1.35)}
+  100%{transform:scale(1)}
 }
+
+/* ขาดทุน = แดงกระพริบ */
+.lossNum{
+  color:red;
+  font-weight:bold;
+  animation:blink 1s infinite;
+}
+
+@keyframes blink{
+  0%{opacity:1}
+  50%{opacity:0}
+  100%{opacity:1}
+}
+
 
 /* กระพริบเฉพาะตัวเลขลบ */
 .lossNum{
@@ -175,17 +190,18 @@ function calc(){
   let sumทุน=0,sumกำไร=0,sumลบ=0,sumรวม=0;
 
   rows.forEach(r=>{
+
     let ทุน = parse(r.cells[1].children[0].value);
     let กำไร = parse(r.cells[2].children[0].value);
     let ลบ = parse(r.cells[3].children[0].value);
 
-    r.cells[1].children[0].value = fmt(ทุน);
-    r.cells[2].children[0].value = fmt(กำไร);
-    r.cells[3].children[0].value = fmt(ลบ);
-
     let รวม = ทุน + กำไร - ลบ;
 
-    r.cells[4].innerHTML = `<span>${fmt(รวม)}</span>`;
+    r.cells[4].innerHTML = fmt(รวม);
+
+    // ใส่ animation เฉพาะตัวเลข
+    r.cells[2].children[0].className = "profitNum";
+    r.cells[3].children[0].className = "lossNum";
 
     sumทุน += ทุน;
     sumกำไร += กำไร;
