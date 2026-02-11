@@ -12,52 +12,18 @@ body{
   text-align:center;
 }
 
-/* logo */
+/* logo animation */
 .logoText{
   font-size:48px;
   font-weight:bold;
   margin:20px;
+  animation:logoMove 3s ease-in-out infinite;
 }
 
-/* กำไร = เขียวเด้ง */
-.profitNum{
-  color:#00ff88;
-  font-weight:bold;
-  display:inline-block;
-  animation:bounce 0.8s ease infinite;
-}
-
-@keyframes bounce{
-  0%{transform:scale(1)}
-  50%{transform:scale(1.35)}
-  100%{transform:scale(1)}
-}
-
-/* ขาดทุน = แดงกระพริบ */
-.lossNum{
-  color:red;
-  font-weight:bold;
-  animation:blink 1s infinite;
-}
-
-@keyframes blink{
-  0%{opacity:1}
-  50%{opacity:0}
-  100%{opacity:1}
-}
-
-
-/* กระพริบเฉพาะตัวเลขลบ */
-.lossNum{
-  color:red;
-  font-weight:bold;
-  animation:blink 1s infinite;
-}
-
-@keyframes blink{
-  0%{opacity:1}
-  50%{opacity:0.2}
-  100%{opacity:1}
+@keyframes logoMove{
+  0%{transform:translateY(0)}
+  50%{transform:translateY(-6px)}
+  100%{transform:translateY(0)}
 }
 
 table{
@@ -68,13 +34,11 @@ table{
 
 th{
   background:#111;
-  color:white;
   padding:8px;
-  border:1px solid #555;
 }
 
 td{
-  background:white;
+  background:#eee;
   color:black;
   padding:6px;
   border:1px solid #555;
@@ -93,9 +57,44 @@ input{
   background:white;
 }
 
+/* กำไร animation */
+.profitNum{
+  color:#00ff88;
+  font-weight:bold;
+  display:inline-block;
+  animation:profitBounce .8s infinite alternate;
+}
+
+@keyframes profitBounce{
+  from{transform:scale(1)}
+  to{transform:scale(1.25)}
+}
+
+/* ลบ animation */
+.lossNum{
+  color:red;
+  font-weight:bold;
+  animation:blink 1s infinite;
+}
+
+@keyframes blink{
+  50%{opacity:0.2}
+}
+
+/* รวมทั้งหมด = ไม่มี animation */
+.totalProfit{
+  color:#00ff88;
+  font-weight:bold;
+}
+
+.totalLoss{
+  color:red;
+  font-weight:bold;
+}
+
 button{
   padding:6px 12px;
-  margin:5px;
+  margin:4px;
   cursor:pointer;
 }
 </style>
@@ -103,7 +102,7 @@ button{
 
 <body>
 
-<div class="logoText">D<span style="color:red">!</span>CTATOR</div>
+<div class="logoText">D!CTATOR</div>
 <h2>ตารางยอดบอล</h2>
 
 <button onclick="addDay()">+ เพิ่มวัน</button>
@@ -127,138 +126,82 @@ button{
 <tr>
 <td>รวมทั้งหมด</td>
 <td id="sumทุน">0</td>
-<td id="sumกำไร"><span class="profitNum">0</span></td>
-<td id="sumลบ"><span class="lossNum">0</span></td>
+<td id="sumกำไร">0</td>
+<td id="sumลบ">0</td>
 <td id="sumรวม">0</td>
 <td></td>
 </tr>
 </tfoot>
 </table>
 
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDZ0iBQX1uJz_gf23M6gn8yQ6S90lGYDOc",
-  authDomain: "dictator-ball.firebaseapp.com",
-  databaseURL: "https://dictator-ball-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "dictator-ball",
-  storageBucket: "dictator-ball.appspot.com",
-  messagingSenderId: "533340357926",
-  appId: "1:533340357926:web:a1eb15b77c335a7a57ade7"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const dataRef = ref(db, "table");
-
+<script>
 function fmt(n){
-  return Number(n).toLocaleString();
+  return n.toLocaleString();
 }
 
-function parse(n){
-  return Number(String(n).replace(/,/g,"")) || 0;
+function parse(v){
+  return Number(v.replace(/,/g,'')) || 0;
 }
 
-window.addDay = function(){
+function addDay(){
   let tbody = document.querySelector("#table tbody");
-  let row = tbody.insertRow();
+  let r = tbody.insertRow();
 
-  row.innerHTML = `
-  <td><input type="date"></td>
-  <td><input value="0"></td>
-  <td><input value="0"></td>
-  <td><input value="0"></td>
-  <td><span>0</span></td>
-  <td><button onclick="removeRow(this)">X</button></td>
-  `;
-
-  calc();
+  r.innerHTML = `
+<td><input type="date"></td>
+<td><input value="0"></td>
+<td><input value="0"></td>
+<td><input value="0"></td>
+<td><span>0</span></td>
+<td><button onclick="removeRow(this)">X</button></td>
+`;
 }
 
-window.removeRow = function(btn){
-  btn.parentNode.parentNode.remove();
+function removeRow(btn){
+  btn.closest("tr").remove();
   calc();
 }
 
 function calc(){
-
   let rows = document.querySelectorAll("#table tbody tr");
 
   let sumทุน=0,sumกำไร=0,sumลบ=0,sumรวม=0;
 
   rows.forEach(r=>{
-
     let ทุน = parse(r.cells[1].children[0].value);
     let กำไร = parse(r.cells[2].children[0].value);
     let ลบ = parse(r.cells[3].children[0].value);
+
+    r.cells[1].children[0].value = fmt(ทุน);
+    r.cells[2].children[0].value = fmt(กำไร);
+    r.cells[3].children[0].value = fmt(ลบ);
 
     let รวม = ทุน + กำไร - ลบ;
 
     r.cells[4].innerHTML = fmt(รวม);
 
-    // ใส่ animation เฉพาะตัวเลข
-    r.cells[2].children[0].className = "profitNum";
-    r.cells[3].children[0].className = "lossNum";
+    r.cells[2].children[0].className="profitNum";
+    r.cells[3].children[0].className="lossNum";
 
-    sumทุน += ทุน;
-    sumกำไร += กำไร;
-    sumลบ += ลบ;
-    sumรวม += รวม;
+    sumทุน+=ทุน;
+    sumกำไร+=กำไร;
+    sumลบ+=ลบ;
+    sumรวม+=รวม;
   });
 
   document.getElementById("sumทุน").innerText = fmt(sumทุน);
-  document.getElementById("sumกำไร").innerHTML = `<span class="profitNum">${fmt(sumกำไร)}</span>`;
-  document.getElementById("sumลบ").innerHTML = `<span class="lossNum">${fmt(sumลบ)}</span>`;
+  document.getElementById("sumกำไร").innerHTML = `<span class="totalProfit">${fmt(sumกำไร)}</span>`;
+  document.getElementById("sumลบ").innerHTML = `<span class="totalLoss">${fmt(sumลบ)}</span>`;
   document.getElementById("sumรวม").innerText = fmt(sumรวม);
 }
 
-window.save = function(){
+document.addEventListener("input",calc);
 
-  let rows = document.querySelectorAll("#table tbody tr");
-  let data = [];
-
-  rows.forEach(r=>{
-    data.push({
-      date: r.cells[0].children[0].value,
-      ทุน: parse(r.cells[1].children[0].value),
-      กำไร: parse(r.cells[2].children[0].value),
-      ลบ: parse(r.cells[3].children[0].value)
-    });
-  });
-
-  set(dataRef, data);
+function save(){
   alert("Saved!");
 }
-
-onValue(dataRef, snap=>{
-  let data = snap.val();
-  if(!data) return;
-
-  let tbody = document.querySelector("#table tbody");
-  tbody.innerHTML="";
-
-  data.forEach(d=>{
-    let row = tbody.insertRow();
-
-    row.innerHTML = `
-    <td><input type="date" value="${d.date}"></td>
-    <td><input value="${fmt(d.ทุน)}"></td>
-    <td><input value="${fmt(d.กำไร)}"></td>
-    <td><input value="${fmt(d.ลบ)}"></td>
-    <td><span>0</span></td>
-    <td><button onclick="removeRow(this)">X</button></td>
-    `;
-  });
-
-  calc();
-});
-
-document.addEventListener("input", calc);
-
 </script>
 
 </body>
 </html>
+
