@@ -6,46 +6,37 @@
 
 <style>
 body {
-  background: black;
-  color: white;
-  font-family: Arial;
-  text-align: center;
+  background:black;
+  color:white;
+  font-family:Arial;
+  text-align:center;
 }
 
 .logoText {
-  font-size: 60px;
-  font-weight: bold;
-  margin-top: 20px;
-  animation: shake 1s infinite;
+  font-size:60px;
+  font-weight:bold;
+  margin-top:20px;
 }
 
-.logoText span {
-  color: red;
-}
-
-@keyframes shake {
-  0% { transform: translate(0,0) }
-  25% { transform: translate(2px,-2px) }
-  50% { transform: translate(-2px,2px) }
-  75% { transform: translate(2px,2px) }
-  100% { transform: translate(0,0) }
-}
+.logoText span { color:red; }
 
 table {
-  width: 90%;
-  margin: auto;
-  border-collapse: collapse;
-  background: #111;
+  width:90%;
+  margin:auto;
+  border-collapse:collapse;
+  background:#111;
 }
 
 th, td {
-  border: 1px solid #555;
-  padding: 8px;
+  border:1px solid #555;
+  padding:8px;
+  background:#ddd;
+  color:black;
 }
 
 button {
-  padding: 6px 10px;
-  margin: 5px;
+  padding:6px 10px;
+  margin:5px;
 }
 </style>
 </head>
@@ -53,10 +44,9 @@ button {
 <body>
 
 <div class="logoText">D<span>!</span>CTATOR</div>
+<h2>ตารางยอดบอล</h2>
 
-<h1>ตารางยอดบอล</h1>
-
-<button onclick="addRow()">+ เพิ่ม</button>
+<button onclick="addDay()">+ เพิ่มวัน</button>
 
 <table id="table">
 <thead>
@@ -70,6 +60,16 @@ button {
 </tr>
 </thead>
 <tbody></tbody>
+<tfoot>
+<tr>
+<td>รวมทั้งหมด</td>
+<td id="sumทุน">0</td>
+<td id="sumกำไร">0</td>
+<td id="sumลบ">0</td>
+<td id="sumรวม">0</td>
+<td></td>
+</tr>
+</tfoot>
 </table>
 
 <script type="module">
@@ -88,54 +88,75 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const dataRef = ref(db, "ballTable");
+const dbRef = ref(db, "ball");
 
-let tableData = [];
+let data = [];
+
+function save() {
+  set(dbRef, data);
+}
 
 function render() {
   const tbody = document.querySelector("#table tbody");
   tbody.innerHTML = "";
 
-  tableData.forEach((row, i) => {
-    const tr = document.createElement("tr");
+  let sทุน=0, sกำไร=0, sลบ=0, sรวม=0;
 
-    row.forEach((cell, j) => {
-      const td = document.createElement("td");
-      const input = document.createElement("input");
-      input.value = cell;
-      input.oninput = () => {
-        tableData[i][j] = input.value;
+  data.forEach((row,i)=>{
+    const tr=document.createElement("tr");
+
+    row.forEach((cell,j)=>{
+      const td=document.createElement("td");
+      const input=document.createElement("input");
+      input.value=cell;
+      input.oninput=()=>{
+        data[i][j]=input.value;
+        calc();
         save();
       };
       td.appendChild(input);
       tr.appendChild(td);
     });
 
-    const del = document.createElement("td");
-    const btn = document.createElement("button");
-    btn.textContent = "X";
-    btn.onclick = () => {
-      tableData.splice(i,1);
+    const total = (+row[1]||0)+(+row[2]||0)-(+row[3]||0);
+    const tdTotal=document.createElement("td");
+    tdTotal.textContent=total;
+    tr.appendChild(tdTotal);
+
+    const del=document.createElement("td");
+    const btn=document.createElement("button");
+    btn.textContent="X";
+    btn.onclick=()=>{
+      data.splice(i,1);
       save();
     };
     del.appendChild(btn);
     tr.appendChild(del);
 
     tbody.appendChild(tr);
+
+    sทุน+=+row[1]||0;
+    sกำไร+=+row[2]||0;
+    sลบ+=+row[3]||0;
+    sรวม+=total;
   });
+
+  document.getElementById("sumทุน").textContent=sทุน;
+  document.getElementById("sumกำไร").textContent=sกำไร;
+  document.getElementById("sumลบ").textContent=sลบ;
+  document.getElementById("sumรวม").textContent=sรวม;
 }
 
-function save() {
-  set(dataRef, tableData);
-}
+function calc(){ render(); }
 
-window.addRow = function() {
-  tableData.push(["","","","",""]);
+window.addDay=()=>{
+  const today=new Date().toLocaleDateString();
+  data.push([today,"0","0","0"]);
   save();
 };
 
-onValue(dataRef, (snap) => {
-  tableData = snap.val() || [];
+onValue(dbRef,snap=>{
+  data=snap.val()||[];
   render();
 });
 </script>
