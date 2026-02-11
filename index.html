@@ -13,15 +13,19 @@ body{
   margin:0;
 }
 
+/* draggable logo */
 .logoText{
   font-size:48px;
   font-weight:bold;
-  margin:20px;
+  position:absolute;
+  cursor:move;
+  user-select:none;
 }
 
 .container{
   width:95%;
   margin:auto;
+  margin-top:120px;
 }
 
 /* date */
@@ -105,7 +109,7 @@ button{
 
 <body>
 
-<div class="logoText">D<span style="color:red">!</span>CTATOR</div>
+<div class="logoText" id="logo">D<span style="color:red">!</span>CTATOR</div>
 
 <div id="loginBox">
 <input id="user" placeholder="Username">
@@ -164,6 +168,34 @@ button{
 
 <script type="module">
 
+/* 🔥 draggable logo */
+const logo=document.getElementById("logo");
+let x=localStorage.getItem("logoX")||20;
+let y=localStorage.getItem("logoY")||20;
+logo.style.left=x+"px";
+logo.style.top=y+"px";
+
+let drag=false,ox,oy;
+
+logo.onmousedown=e=>{
+drag=true;
+ox=e.clientX-logo.offsetLeft;
+oy=e.clientY-logo.offsetTop;
+};
+
+document.onmousemove=e=>{
+if(!drag) return;
+logo.style.left=(e.clientX-ox)+"px";
+logo.style.top=(e.clientY-oy)+"px";
+};
+
+document.onmouseup=()=>{
+drag=false;
+localStorage.setItem("logoX",logo.offsetLeft);
+localStorage.setItem("logoY",logo.offsetTop);
+};
+
+/* 🔥 Firebase */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
