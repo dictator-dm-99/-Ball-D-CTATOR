@@ -1,12 +1,106 @@
-<!-- ช่องวันที่ด้านบน -->
-<div style="margin:10px;">
-วันที่ :
-<input type="date" style="width:120px; padding:3px; text-align:center;">
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>D!CTATOR</title>
+
+<style>
+body{
+  background:black;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+}
+
+.logoText{
+  font-size:48px;
+  font-weight:bold;
+  margin:20px;
+}
+
+/* แถบลีก */
+.leagueBar{
+  background:#111;
+  padding:10px;
+  font-size:20px;
+  border-top:1px solid #444;
+  border-bottom:1px solid #444;
+}
+
+/* login */
+#loginBox input{
+  width:140px;
+  padding:5px;
+}
+
+/* table */
+table{
+  width:95%;
+  margin:auto;
+  border-collapse:collapse;
+}
+
+th{
+  background:#2b1a00;
+  color:#ffcc66;
+  padding:8px;
+  border:1px solid #555;
+}
+
+td{
+  background:white;
+  color:black;
+  padding:6px;
+  border:1px solid #555;
+}
+
+tfoot td{
+  background:black;
+  color:white;
+  font-weight:bold;
+}
+
+/* input */
+input{
+  width:95%;
+  border:1px solid #aaa;
+  padding:4px;
+  text-align:center;
+}
+
+button{
+  padding:5px 10px;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="logoText">D<span style="color:red">!</span>CTATOR</div>
+
+<div id="loginBox">
+<input id="user" placeholder="Username">
+<input id="pass" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
+<button onclick="logout()">Logout</button>
 </div>
 
-<table>
+<br>
+
+<button id="addBtn" onclick="addDay()" disabled>+ เพิ่มรายการ</button>
+<button id="saveBtn" onclick="save()" disabled>💾 Save</button>
+
+<br><br>
+
+<div class="leagueBar">
+พรีเมียร์ลีกอังกฤษ (Premier League)
+</div>
+
+<table id="table">
+
 <thead>
-<tr style="background:#3a2400;color:#ffcc66;">
+<tr>
 <th>เวลา</th>
 <th>ทีมเจ้าบ้าน</th>
 <th>ราคาบอล</th>
@@ -14,29 +108,142 @@
 <th>รายชื่อ</th>
 <th>เบอร์โทร</th>
 <th>ยอดแทง</th>
-<th>-</th>
+<th>ลบ</th>
 </tr>
 </thead>
 
-<tbody>
-<tr>
-<td><input></td>
-<td><input></td>
-<td><input></td>
-<td><input></td>
-<td><input></td>
-<td><input></td>
-<td><input></td>
-<td><button>X</button></td>
-</tr>
-</tbody>
+<tbody></tbody>
 
 <tfoot>
 <tr>
-<td colspan="6">รวมทั้งหมด</td>
-<td>0</td>
+<td colspan="6">รวมยอดแทง</td>
+<td id="sumแทง">0</td>
 <td></td>
 </tr>
 </tfoot>
+
 </table>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig={
+apiKey:"AIzaSyDZ0...",
+authDomain:"dictator-ball.firebaseapp.com",
+databaseURL:"https://dictator-ball-default-rtdb.asia-southeast1.firebasedatabase.app",
+projectId:"dictator-ball"
+};
+
+const app=initializeApp(firebaseConfig);
+const db=getDatabase(app);
+const dataRef=ref(db,"table");
+
+/* login demo */
+let admin=false;
+
+window.login=function(){
+admin=true;
+addBtn.disabled=false;
+saveBtn.disabled=false;
+}
+
+window.logout=function(){
+admin=false;
+addBtn.disabled=true;
+saveBtn.disabled=true;
+}
+
+/* format */
+function fmt(n){return Number(n).toLocaleString();}
+function parse(n){return Number(String(n).replace(/,/g,""))||0;}
+
+/* add row */
+window.addDay=function(){
+if(!admin) return;
+
+let r=document.querySelector("#table tbody").insertRow();
+r.innerHTML=`
+<td><input type="time"></td>
+<td><input></td>
+<td><input></td>
+<td><input></td>
+<td><input></td>
+<td><input></td>
+<td><input value="0"></td>
+<td><button onclick="removeRow(this)">X</button></td>`;
+calc();
+}
+
+/* delete row */
+window.removeRow=function(b){
+b.parentNode.parentNode.remove();
+calc();
+}
+
+/* calculate total */
+function calc(){
+let rows=document.querySelectorAll("#table tbody tr");
+let total=0;
+
+rows.forEach(r=>{
+let v=parse(r.cells[6].children[0].value);
+r.cells[6].children[0].value=fmt(v);
+total+=v;
+});
+
+sumแทง.innerText=fmt(total);
+}
+
+document.addEventListener("input",calc);
+
+/* save */
+window.save=function(){
+let rows=document.querySelectorAll("#table tbody tr");
+let data=[];
+
+rows.forEach(r=>{
+data.push({
+time:r.cells[0].children[0].value,
+home:r.cells[1].children[0].value,
+price:r.cells[2].children[0].value,
+away:r.cells[3].children[0].value,
+name:r.cells[4].children[0].value,
+phone:r.cells[5].children[0].value,
+bet:parse(r.cells[6].children[0].value)
+});
+});
+
+set(dataRef,data);
+alert("Saved!");
+}
+
+/* load */
+onValue(dataRef,s=>{
+let data=s.val();
+if(!data) return;
+
+let tbody=document.querySelector("#table tbody");
+tbody.innerHTML="";
+
+data.forEach(d=>{
+let r=tbody.insertRow();
+r.innerHTML=`
+<td><input type="time" value="${d.time}"></td>
+<td><input value="${d.home}"></td>
+<td><input value="${d.price}"></td>
+<td><input value="${d.away}"></td>
+<td><input value="${d.name}"></td>
+<td><input value="${d.phone}"></td>
+<td><input value="${fmt(d.bet)}"></td>
+<td><button onclick="removeRow(this)">X</button></td>`;
+});
+
+calc();
+});
+
+</script>
+</body>
+</html>
 
