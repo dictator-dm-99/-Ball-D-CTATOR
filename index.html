@@ -12,20 +12,36 @@ body{
   text-align:center;
 }
 
-/* 🔥 logo สั่น */
+/* logo */
 .logoText{
   font-size:48px;
   font-weight:bold;
   margin:20px;
-  animation:shake 2s infinite;
 }
 
-@keyframes shake{
-  0%{transform:translate(0)}
-  25%{transform:translate(1px,0)}
-  50%{transform:translate(-1px,0)}
-  75%{transform:translate(1px,0)}
-  100%{transform:translate(0)}
+/* animation กำไร */
+.profit{
+  color:#00ff66;
+  font-weight:bold;
+  animation:profitBounce 1s infinite alternate;
+}
+
+@keyframes profitBounce{
+  from{ transform:scale(1); }
+  to{ transform:scale(1.15); }
+}
+
+/* animation ลบ */
+.loss{
+  color:red;
+  font-weight:bold;
+  animation:blink 1s infinite;
+}
+
+@keyframes blink{
+  0%{opacity:1}
+  50%{opacity:0.2}
+  100%{opacity:1}
 }
 
 table{
@@ -95,18 +111,16 @@ button{
 <tr>
 <td>รวมทั้งหมด</td>
 <td id="sumทุน">0</td>
-<td id="sumกำไร">0</td>
-<td id="sumลบ">0</td>
+<td id="sumกำไร" class="profit">0</td>
+<td id="sumลบ" class="loss">0</td>
 <td id="sumรวม">0</td>
 <td></td>
 </tr>
 </tfoot>
-
 </table>
 
 <script type="module">
 
-// 🔥 Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -124,26 +138,23 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const dataRef = ref(db, "table");
 
-// format comma
 function fmt(n){
   return Number(n).toLocaleString();
 }
 
-// parse number remove comma
 function parse(n){
   return Number(String(n).replace(/,/g,"")) || 0;
 }
 
 window.addDay = function(){
-
   let tbody = document.querySelector("#table tbody");
   let row = tbody.insertRow();
 
   row.innerHTML = `
   <td><input type="date"></td>
   <td><input value="0"></td>
-  <td><input value="0"></td>
-  <td><input value="0"></td>
+  <td><input value="0" class="profit"></td>
+  <td><input value="0" class="loss"></td>
   <td>0</td>
   <td><button onclick="removeRow(this)">X</button></td>
   `;
@@ -218,8 +229,8 @@ onValue(dataRef, snap=>{
     row.innerHTML = `
     <td><input type="date" value="${d.date}"></td>
     <td><input value="${fmt(d.ทุน)}"></td>
-    <td><input value="${fmt(d.กำไร)}"></td>
-    <td><input value="${fmt(d.ลบ)}"></td>
+    <td><input value="${fmt(d.กำไร)}" class="profit"></td>
+    <td><input value="${fmt(d.ลบ)}" class="loss"></td>
     <td>0</td>
     <td><button onclick="removeRow(this)">X</button></td>
     `;
