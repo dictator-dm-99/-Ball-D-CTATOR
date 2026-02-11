@@ -5,83 +5,16 @@
 <title>D!CTATOR</title>
 
 <style>
-body{
-  background:black;
-  color:white;
-  font-family:Arial;
-  text-align:center;
-}
-
-/* logo */
-.logoText{
-  font-size:48px;
-  font-weight:bold;
-  margin:20px;
-  animation:shake 2s infinite;
-}
-@keyframes shake{
-  0%{transform:translate(0)}
-  25%{transform:translate(1px)}
-  50%{transform:translate(-1px)}
-  75%{transform:translate(1px)}
-  100%{transform:translate(0)}
-}
-
-/* login */
-#loginBox input{
-  width:140px;
-  padding:5px;
-}
-
-/* table */
-table{
-  width:90%;
-  margin:auto;
-  border-collapse:collapse;
-}
-
-th{
-  background:#111;
-  color:white;
-  padding:8px;
-  border:1px solid #555;
-}
-
-td{
-  background:white;
-  color:black;
-  padding:6px;
-  border:1px solid #555;
-}
-
-tfoot td{
-  background:black;
-  color:white;
-  font-weight:bold;
-}
-
-/* ช่องกรอบเล็ก */
-input{
-  width:95%;
-  border:1px solid #aaa;
-  padding:3px;
-  text-align:center;
-  background:white;
-  box-shadow: inset 0 0 3px #ccc;
-}
-
-/* audit */
-#logBox{
-  display:none;
-  margin:20px;
-  border:1px solid #555;
-  padding:10px;
-  height:150px;
-  overflow:auto;
-  background:#111;
-  font-size:12px;
-  text-align:left;
-}
+body{background:black;color:white;font-family:Arial;text-align:center;}
+.logoText{font-size:48px;font-weight:bold;margin:20px;animation:shake 2s infinite;}
+@keyframes shake{0%{transform:translate(0)}25%{transform:translate(1px)}50%{transform:translate(-1px)}75%{transform:translate(1px)}100%{transform:translate(0)}}
+#loginBox input{width:140px;padding:5px;}
+table{width:90%;margin:auto;border-collapse:collapse;}
+th{background:#111;color:white;padding:8px;border:1px solid #555;}
+td{background:white;color:black;padding:6px;border:1px solid #555;}
+tfoot td{background:black;color:white;font-weight:bold;}
+input{width:95%;border:1px solid #aaa;padding:3px;text-align:center;background:white;box-shadow: inset 0 0 3px #ccc;}
+#logBox{display:none;margin:20px;border:1px solid #555;padding:10px;height:150px;overflow:auto;background:#111;font-size:12px;text-align:left;}
 </style>
 </head>
 
@@ -106,12 +39,7 @@ input{
 <table id="table">
 <thead>
 <tr>
-<th>วันที่</th>
-<th>ทุน</th>
-<th>กำไร</th>
-<th>-</th>
-<th>รวม</th>
-<th>ลบวัน</th>
+<th>วันที่</th><th>ทุน</th><th>กำไร</th><th>-</th><th>รวม</th><th>ลบวัน</th>
 </tr>
 </thead>
 <tbody></tbody>
@@ -147,11 +75,14 @@ const db=getDatabase(app);
 
 const dataRef=ref(db,"table");
 const logRef=ref(db,"audit");
-const sessionRef=ref(db,"sessions");
 
 /* accounts */
 const accounts={
-"Yohan888":"dictator_yohan888"
+"Pim888_":"dictator_888_pim",
+"Yohan888_":"dictator_yohan_888",
+"Jo888_":"Jo_dictator_888",
+"Jwish888_":"dictator_Jwish888_",
+"Joommeng_":"Joommeng888"
 };
 
 let admin=false;
@@ -166,6 +97,7 @@ admin=true;
 currentUser=rememberedUser;
 addBtn.disabled=false;
 saveBtn.disabled=false;
+watchSession();
 }
 
 /* login */
@@ -173,13 +105,10 @@ window.login=async function(){
 let u=user.value,p=pass.value;
 if(accounts[u]!==p){alert("Wrong login");return;}
 
-let s=await get(ref(db,"sessions/"+u));
-if(s.exists()&&s.val()!==deviceId){
-alert("บัญชีนี้กำลังใช้งานอยู่");
-return;
-}
-
-set(ref(db,"sessions/"+u),deviceId);
+await set(ref(db,"sessions/"+u),{
+device:deviceId,
+time:Date.now()
+});
 
 admin=true;
 currentUser=u;
@@ -188,6 +117,7 @@ localStorage.setItem("loginUser",u);
 addBtn.disabled=false;
 saveBtn.disabled=false;
 
+watchSession();
 log("LOGIN");
 }
 
@@ -205,27 +135,44 @@ addBtn.disabled=true;
 saveBtn.disabled=true;
 }
 
-/* audit toggle */
+/* watch session */
+function watchSession(){
+onValue(ref(db,"sessions/"+currentUser),(s)=>{
+if(!s.exists()){
+forceLogout("Session หมดอายุ");
+return;
+}
+let data=s.val();
+if(data.device!==deviceId){
+forceLogout("มีคน login ซ้ำ บัญชีถูกเตะออก");
+}
+});
+}
+
+/* force logout */
+function forceLogout(msg){
+alert(msg);
+admin=false;
+currentUser="";
+localStorage.removeItem("loginUser");
+addBtn.disabled=true;
+saveBtn.disabled=true;
+}
+
+/* audit */
+function log(action){
+push(logRef,{user:currentUser,action:action,time:new Date().toLocaleString()});
+}
+
 window.toggleLog=function(){
 if(!admin) return;
 logBox.style.display = logBox.style.display=="none"?"block":"none";
 logTitle.style.display = logTitle.style.display=="none"?"block":"none";
 }
 
-/* audit */
-function log(action){
-push(logRef,{
-user:currentUser,
-action:action,
-time:new Date().toLocaleString()
-});
-}
-
 onValue(logRef,s=>{
 if(!admin) return;
-let data=s.val();
-if(!data) return;
-
+let data=s.val(); if(!data) return;
 logBox.innerHTML="";
 Object.values(data).slice(-20).reverse().forEach(d=>{
 logBox.innerHTML+=`<div>[${d.time}] ${d.user} → ${d.action}</div>`;
@@ -239,22 +186,19 @@ function parse(n){return Number(String(n).replace(/,/g,""))||0;}
 window.addDay=function(){
 if(!admin) return;
 let r=document.querySelector("#table tbody").insertRow();
-r.innerHTML=`
-<td><input type=date></td>
+r.innerHTML=`<td><input type=date></td>
 <td><input value=0></td>
 <td><input value=0></td>
 <td><input value=0></td>
 <td>0</td>
 <td><button onclick="removeRow(this)">X</button></td>`;
-log("ADD ROW");
-calc();
+log("ADD ROW"); calc();
 }
 
 window.removeRow=function(b){
 if(!admin) return;
 b.parentNode.parentNode.remove();
-log("DELETE ROW");
-calc();
+log("DELETE ROW"); calc();
 }
 
 function calc(){
@@ -265,14 +209,11 @@ rows.forEach(r=>{
 let a=parse(r.cells[1].children[0].value);
 let b=parse(r.cells[2].children[0].value);
 let c=parse(r.cells[3].children[0].value);
-
 r.cells[1].children[0].value=fmt(a);
 r.cells[2].children[0].value=fmt(b);
 r.cells[3].children[0].value=fmt(c);
-
 let sum=a+b-c;
 r.cells[4].innerText=fmt(sum);
-
 s1+=a;s2+=b;s3+=c;s4+=sum;
 });
 
@@ -284,7 +225,6 @@ sumรวม.innerText=fmt(s4);
 
 window.save=function(){
 if(!admin) return;
-
 let rows=document.querySelectorAll("#table tbody tr");
 let data=[];
 rows.forEach(r=>{
@@ -295,21 +235,18 @@ date:r.cells[0].children[0].value,
 ลบ:parse(r.cells[3].children[0].value)
 });
 });
-
 set(dataRef,data);
 log("SAVE TABLE");
 alert("Saved!");
 }
 
 onValue(dataRef,s=>{
-let data=s.val();
-if(!data) return;
+let data=s.val(); if(!data) return;
 let tbody=document.querySelector("#table tbody");
 tbody.innerHTML="";
 data.forEach(d=>{
 let r=tbody.insertRow();
-r.innerHTML=`
-<td><input type=date value="${d.date}"></td>
+r.innerHTML=`<td><input type=date value="${d.date}"></td>
 <td><input value="${fmt(d.ทุน)}"></td>
 <td><input value="${fmt(d.กำไร)}"></td>
 <td><input value="${fmt(d.ลบ)}"></td>
