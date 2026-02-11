@@ -40,11 +40,11 @@ td{
   border:1px solid #555;
 }
 
-/* ✅ แถวรวมทั้งหมด = สีดำ */
+/* แถวรวมทั้งหมด */
 tfoot td{
-  color:black;
+  background:#000;
+  color:white;
   font-weight:bold;
-  background:#eaeaea;
 }
 
 input{
@@ -91,13 +91,12 @@ input{
 
 </table>
 
-<!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "YOUR_KEY",
+  apiKey: "AIzaSyDZ0iBQX1uJz_gf23M6gn8yQ6S90lGYDOc",
   authDomain: "dictator-ball.firebaseapp.com",
   databaseURL: "https://dictator-ball-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "dictator-ball",
