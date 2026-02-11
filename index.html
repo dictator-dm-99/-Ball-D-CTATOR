@@ -24,19 +24,32 @@ table {
   width:90%;
   margin:auto;
   border-collapse:collapse;
-  background:#111;
 }
 
-th, td {
-  border:1px solid #555;
+th {
+  background:#111;
+  color:white;
   padding:8px;
-  background:#ddd;
-  color:black;
+  border:1px solid #555;
+}
+
+td {
+  background:white;
+  padding:6px;
+  border:1px solid #555;
+}
+
+input {
+  width:100%;
+  border:none;
+  text-align:center;
+  background:white;
 }
 
 button {
   padding:6px 10px;
   margin:5px;
+  cursor:pointer;
 }
 </style>
 </head>
@@ -47,6 +60,7 @@ button {
 <h2>ตารางยอดบอล</h2>
 
 <button onclick="addDay()">+ เพิ่มวัน</button>
+<button onclick="save()">💾 Save</button>
 
 <table id="table">
 <thead>
@@ -92,9 +106,15 @@ const dbRef = ref(db, "ball");
 
 let data = [];
 
-function save() {
+window.save = function() {
   set(dbRef, data);
-}
+};
+
+window.addDay = function() {
+  const today = new Date().toLocaleDateString();
+  data.push([today,"0","0","0"]);
+  render();
+};
 
 function render() {
   const tbody = document.querySelector("#table tbody");
@@ -111,8 +131,7 @@ function render() {
       input.value=cell;
       input.oninput=()=>{
         data[i][j]=input.value;
-        calc();
-        save();
+        render();
       };
       td.appendChild(input);
       tr.appendChild(td);
@@ -128,7 +147,7 @@ function render() {
     btn.textContent="X";
     btn.onclick=()=>{
       data.splice(i,1);
-      save();
+      render();
     };
     del.appendChild(btn);
     tr.appendChild(del);
@@ -146,14 +165,6 @@ function render() {
   document.getElementById("sumลบ").textContent=sลบ;
   document.getElementById("sumรวม").textContent=sรวม;
 }
-
-function calc(){ render(); }
-
-window.addDay=()=>{
-  const today=new Date().toLocaleDateString();
-  data.push([today,"0","0","0"]);
-  save();
-};
 
 onValue(dbRef,snap=>{
   data=snap.val()||[];
