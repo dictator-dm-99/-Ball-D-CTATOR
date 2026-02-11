@@ -10,6 +10,7 @@ body{
   color:white;
   font-family:Arial;
   text-align:center;
+  margin:0;
 }
 
 .logoText{
@@ -18,13 +19,49 @@ body{
   margin:20px;
 }
 
-/* แถบลีก */
-.leagueBar{
+/* wrapper ให้ topbar + table เท่ากัน */
+.container{
+  width:95%;
+  margin:auto;
+}
+
+/* top bar */
+.topBar{
   background:#111;
-  padding:10px;
-  font-size:20px;
   border-top:1px solid #444;
   border-bottom:1px solid #444;
+  padding:8px 12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  box-sizing:border-box;
+}
+
+/* date */
+.dateMini{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  font-size:12px;
+}
+
+.dateMini input{
+  width:120px;
+  padding:2px;
+  font-size:12px;
+}
+
+/* league */
+.leagueTitle{
+  font-size:18px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.leagueTitle img{
+  height:26px;
 }
 
 /* login */
@@ -35,8 +72,7 @@ body{
 
 /* table */
 table{
-  width:95%;
-  margin:auto;
+  width:100%;
   border-collapse:collapse;
 }
 
@@ -60,7 +96,6 @@ tfoot td{
   font-weight:bold;
 }
 
-/* input */
 input{
   width:95%;
   border:1px solid #aaa;
@@ -93,8 +128,22 @@ button{
 
 <br><br>
 
-<div class="leagueBar">
+<div class="container">
+
+<!-- top bar -->
+<div class="topBar">
+
+<div class="dateMini">
+<input type="date" id="dateStart">
+<span>→</span>
+<input type="date" id="dateEnd">
+</div>
+
+<div class="leagueTitle">
 พรีเมียร์ลีกอังกฤษ (Premier League)
+<img src="https://upload.wikimedia.org/wikipedia/en/f/f2/Premier_League_Logo.svg">
+</div>
+
 </div>
 
 <table id="table">
@@ -124,6 +173,8 @@ button{
 
 </table>
 
+</div>
+
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -140,7 +191,6 @@ const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
 const dataRef=ref(db,"table");
 
-/* login demo */
 let admin=false;
 
 window.login=function(){
@@ -155,11 +205,9 @@ addBtn.disabled=true;
 saveBtn.disabled=true;
 }
 
-/* format */
 function fmt(n){return Number(n).toLocaleString();}
 function parse(n){return Number(String(n).replace(/,/g,""))||0;}
 
-/* add row */
 window.addDay=function(){
 if(!admin) return;
 
@@ -176,13 +224,11 @@ r.innerHTML=`
 calc();
 }
 
-/* delete row */
 window.removeRow=function(b){
 b.parentNode.parentNode.remove();
 calc();
 }
 
-/* calculate total */
 function calc(){
 let rows=document.querySelectorAll("#table tbody tr");
 let total=0;
@@ -198,7 +244,6 @@ sumแทง.innerText=fmt(total);
 
 document.addEventListener("input",calc);
 
-/* save */
 window.save=function(){
 let rows=document.querySelectorAll("#table tbody tr");
 let data=[];
@@ -219,7 +264,6 @@ set(dataRef,data);
 alert("Saved!");
 }
 
-/* load */
 onValue(dataRef,s=>{
 let data=s.val();
 if(!data) return;
@@ -246,4 +290,3 @@ calc();
 </script>
 </body>
 </html>
-
