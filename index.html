@@ -5,122 +5,24 @@
 <title>D!CTATOR</title>
 
 <style>
-body{
-  background:black;
-  color:white;
-  font-family:Arial;
-  text-align:center;
-  margin:0;
+body{background:black;color:white;font-family:Arial;text-align:center;margin:0;}
+.logoText{font-size:48px;font-weight:bold;margin:20px;letter-spacing:3px;}
+.logoText span{color:red;}
+
+table{width:100%;border-collapse:collapse;}
+th{background:#2b1a00;color:#ffcc66;padding:8px;border:1px solid #555;}
+td{background:white;color:black;padding:6px;border:1px solid #555;vertical-align:top;}
+
+input{width:95%;padding:4px;text-align:center;}
+button{padding:4px 8px;margin:2px;cursor:pointer;}
+
+.betterRow{
+display:flex;
+gap:4px;
+margin-bottom:4px;
 }
 
-/* ===== LOGO ANIMATION ===== */
-.logoText{
-  font-size:48px;
-  font-weight:bold;
-  margin:20px;
-  letter-spacing:3px;
-  animation: glitch 1.5s infinite;
-  text-shadow:0 0 10px #fff;
-}
-
-.logoText span{
-  color:red;
-  animation: blink 0.8s infinite;
-  text-shadow:0 0 10px red,0 0 20px red;
-}
-
-@keyframes glitch{
-  0%{transform:translate(0);}
-  20%{transform:translate(-1px,1px);}
-  40%{transform:translate(1px,-1px);}
-  60%{transform:translate(-1px,0);}
-  80%{transform:translate(1px,1px);}
-  100%{transform:translate(0);}
-}
-
-@keyframes blink{
-  0%,100%{opacity:1;}
-  50%{opacity:0.2;}
-}
-
-/* ===== UI ===== */
-.container{
-  width:95%;
-  margin:auto;
-}
-
-.dateBar{
-  text-align:left;
-  margin-bottom:6px;
-  font-size:12px;
-}
-
-.dateBar input{
-  width:130px;
-  padding:3px;
-  font-size:12px;
-}
-
-.leagueBar{
-  background:#111;
-  border-top:1px solid #444;
-  border-bottom:1px solid #444;
-  padding:8px;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  gap:8px;
-  font-size:18px;
-}
-
-.leagueBar img{
-  height:26px;
-  background:white;
-  padding:2px 4px;
-  border-radius:4px;
-}
-
-#loginBox input{
-  width:140px;
-  padding:5px;
-}
-
-table{
-  width:100%;
-  border-collapse:collapse;
-}
-
-th{
-  background:#2b1a00;
-  color:#ffcc66;
-  padding:8px;
-  border:1px solid #555;
-}
-
-td{
-  background:white;
-  color:black;
-  padding:6px;
-  border:1px solid #555;
-}
-
-tfoot td{
-  background:black;
-  color:white;
-  font-weight:bold;
-}
-
-input{
-  width:95%;
-  border:1px solid #aaa;
-  padding:4px;
-  text-align:center;
-}
-
-button{
-  padding:5px 10px;
-  cursor:pointer;
-}
+.betterRow input{width:33%;}
 </style>
 </head>
 
@@ -128,31 +30,8 @@ button{
 
 <div class="logoText">D<span>!</span>CTATOR</div>
 
-<div id="loginBox">
-<input id="user" placeholder="Username">
-<input id="pass" type="password" placeholder="Password">
-<button onclick="login()">Login</button>
-<button onclick="logout()">Logout</button>
-</div>
-
-<br>
-
-<button id="addBtn" onclick="addDay()" disabled>+ เพิ่มรายการ</button>
-<button id="saveBtn" onclick="save()" disabled>💾 Save</button>
-
-<br><br>
-
-<div class="container">
-
-<div class="dateBar">
-วันที่:
-<input type="date" id="dateBox">
-</div>
-
-<div class="leagueBar">
-พรีเมียร์ลีกอังกฤษ (Premier League)
-<img src="https://upload.wikimedia.org/wikipedia/en/f/f2/Premier_League_Logo.svg">
-</div>
+<button onclick="addMatch()">+ เพิ่มคู่</button>
+<button onclick="save()">💾 Save</button>
 
 <table id="table">
 
@@ -162,9 +41,7 @@ button{
 <th>ทีมเจ้าบ้าน</th>
 <th>ราคาบอล</th>
 <th>ทีมเยือน</th>
-<th>รายชื่อ</th>
-<th>เบอร์โทร</th>
-<th>ยอดแทง</th>
+<th>รายชื่อผู้แทง</th>
 <th>ลบ</th>
 </tr>
 </thead>
@@ -173,66 +50,64 @@ button{
 
 <tfoot>
 <tr>
-<td colspan="6">รวมยอดแทง</td>
-<td id="sumแทง">0</td>
+<td colspan="4">รวมยอดแทง</td>
+<td id="sum">0</td>
 <td></td>
 </tr>
 </tfoot>
 
 </table>
 
-</div>
-
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDZ0iBQX1uJz_gf23M6gn8yQ6S90lGYDOc",
-  authDomain: "dictator-ball.firebaseapp.com",
-  databaseURL: "https://dictator-ball-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "dictator-ball",
-  storageBucket: "dictator-ball.firebasestorage.app",
-  messagingSenderId: "533340357926",
-  appId: "1:533340357926:web:a1eb15b77c335a7a57ade7"
+const firebaseConfig={
+apiKey:"YOURKEY",
+authDomain:"YOUR",
+databaseURL:"YOUR",
+projectId:"YOUR",
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const dataRef = ref(db,"table");
-
-let admin=false;
-
-window.login=function(){
-admin=true;
-addBtn.disabled=false;
-saveBtn.disabled=false;
-}
-
-window.logout=function(){
-admin=false;
-addBtn.disabled=true;
-saveBtn.disabled=true;
-}
+const app=initializeApp(firebaseConfig);
+const db=getDatabase(app);
+const dataRef=ref(db,"matches");
 
 function fmt(n){return Number(n).toLocaleString();}
 function parse(n){return Number(String(n).replace(/,/g,""))||0;}
 
-window.addDay=function(){
-if(!admin) return;
-
+window.addMatch=function(){
 let r=document.querySelector("#table tbody").insertRow();
+
 r.innerHTML=`
 <td><input type="time"></td>
 <td><input></td>
 <td><input></td>
 <td><input></td>
-<td><input></td>
-<td><input></td>
-<td><input value="0"></td>
-<td><button onclick="removeRow(this)">X</button></td>`;
-calc();
+<td>
+<div class="betList"></div>
+<button onclick="addBetter(this)">+ เพิ่มชื่อ</button>
+</td>
+<td><button onclick="removeRow(this)">X</button></td>
+`;
+
+}
+
+window.addBetter=function(btn){
+let box=btn.parentNode.querySelector(".betList");
+
+let div=document.createElement("div");
+div.className="betterRow";
+
+div.innerHTML=`
+<input placeholder="ชื่อ">
+<input placeholder="เบอร์">
+<input placeholder="ยอด">
+<button onclick="this.parentNode.remove();calc()">X</button>
+`;
+
+box.appendChild(div);
 }
 
 window.removeRow=function(b){
@@ -241,39 +116,46 @@ calc();
 }
 
 function calc(){
-let rows=document.querySelectorAll("#table tbody tr");
 let total=0;
 
-rows.forEach(r=>{
-let v=parse(r.cells[6].children[0].value);
-r.cells[6].children[0].value=fmt(v);
+document.querySelectorAll(".betterRow").forEach(r=>{
+let v=parse(r.children[2].value);
+r.children[2].value=fmt(v);
 total+=v;
 });
 
-sumแทง.innerText=fmt(total);
+sum.innerText=fmt(total);
 }
 
 document.addEventListener("input",calc);
 
 window.save=function(){
-let rows=document.querySelectorAll("#table tbody tr");
-let data=[];
 
-rows.forEach(r=>{
-data.push({
+let matches=[];
+
+document.querySelectorAll("#table tbody tr").forEach(r=>{
+
+let betters=[];
+
+r.querySelectorAll(".betterRow").forEach(b=>{
+betters.push({
+name:b.children[0].value,
+phone:b.children[1].value,
+bet:parse(b.children[2].value)
+});
+});
+
+matches.push({
 time:r.cells[0].children[0].value,
 home:r.cells[1].children[0].value,
 price:r.cells[2].children[0].value,
 away:r.cells[3].children[0].value,
-name:r.cells[4].children[0].value,
-phone:r.cells[5].children[0].value,
-bet:parse(r.cells[6].children[0].value)
-});
+betters:betters
 });
 
-set(dataRef,data)
-.then(()=>alert("Saved!"))
-.catch(e=>alert("Error: "+e.message));
+});
+
+set(dataRef,matches);
 }
 
 onValue(dataRef,s=>{
@@ -283,17 +165,36 @@ if(!data) return;
 let tbody=document.querySelector("#table tbody");
 tbody.innerHTML="";
 
-data.forEach(d=>{
+data.forEach(m=>{
+
 let r=tbody.insertRow();
+
 r.innerHTML=`
-<td><input type="time" value="${d.time}"></td>
-<td><input value="${d.home}"></td>
-<td><input value="${d.price}"></td>
-<td><input value="${d.away}"></td>
-<td><input value="${d.name}"></td>
-<td><input value="${d.phone}"></td>
-<td><input value="${fmt(d.bet)}"></td>
-<td><button onclick="removeRow(this)">X</button></td>`;
+<td><input type="time" value="${m.time}"></td>
+<td><input value="${m.home}"></td>
+<td><input value="${m.price}"></td>
+<td><input value="${m.away}"></td>
+<td>
+<div class="betList"></div>
+<button onclick="addBetter(this)">+ เพิ่มชื่อ</button>
+</td>
+<td><button onclick="removeRow(this)">X</button></td>
+`;
+
+let box=r.querySelector(".betList");
+
+m.betters?.forEach(b=>{
+let div=document.createElement("div");
+div.className="betterRow";
+div.innerHTML=`
+<input value="${b.name}">
+<input value="${b.phone}">
+<input value="${fmt(b.bet)}">
+<button onclick="this.parentNode.remove();calc()">X</button>
+`;
+box.appendChild(div);
+});
+
 });
 
 calc();
