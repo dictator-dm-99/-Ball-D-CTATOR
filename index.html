@@ -103,9 +103,11 @@ button{
 
 <br>
 
+<div id="adminBtns" style="display:none">
 <button onclick="addRow()">+ เพิ่มวัน</button>
 <button onclick="save()">💾 Save</button>
 <button onclick="toggleAudit()">📜 Audit Log</button>
+</div>
 
 <table id="table">
 <thead>
@@ -162,12 +164,28 @@ const accounts={
 
 let currentUser=null;
 
+function isAdmin(){
+ return currentUser!==null;
+}
+
+function updateUI(){
+ adminBtns.style.display=isAdmin()?"block":"none";
+
+ document.querySelectorAll("#table input").forEach(i=>{
+  i.readOnly=!isAdmin();
+ });
+
+ document.querySelectorAll(".delBtn").forEach(b=>{
+  b.style.display=isAdmin()?"inline":"none";
+ });
+}
+
 function log(action){
  if(!currentUser)return;
  push(logRef,{
- user:currentUser,
- action,
- time:new Date().toLocaleString()
+  user:currentUser,
+  action,
+  time:new Date().toLocaleString()
  });
 }
 
@@ -189,6 +207,7 @@ window.login=()=>{
   set(ref(db,"sessions/"+u),navigator.userAgent);
   currentUser=u;
   log("LOGIN");
+  updateUI();
  });
 };
 
@@ -197,9 +216,12 @@ window.logout=()=>{
  remove(ref(db,"sessions/"+currentUser));
  log("LOGOUT");
  currentUser=null;
+ updateUI();
 };
 
 window.addRow=()=>{
+ if(!isAdmin())return;
+
  let tbody=document.querySelector("#table tbody");
  let r=tbody.insertRow();
  r.innerHTML=`
@@ -208,7 +230,8 @@ window.addRow=()=>{
 <td><input value="0"></td>
 <td><input value="0"></td>
 <td><span>0</span></td>
-<td><button onclick="this.parentNode.parentNode.remove();calc()">X</button></td>`;
+<td><button class="delBtn" onclick="this.parentNode.parentNode.remove();calc()">X</button></td>`;
+ updateUI();
 };
 
 function fmt(n){return n.toLocaleString();}
@@ -245,6 +268,8 @@ window.calc=()=>{
 document.addEventListener("input",calc);
 
 window.save=()=>{
+ if(!isAdmin())return;
+
  let rows=document.querySelectorAll("#table tbody tr");
  let data=[];
  rows.forEach(r=>{
@@ -255,6 +280,7 @@ window.save=()=>{
    l:parse(r.cells[3].children[0].value)
   });
  });
+
  set(dataRef,data);
  log("SAVE TABLE");
 };
@@ -271,12 +297,15 @@ onValue(dataRef,(snap)=>{
 <td><input value="${fmt(d.g)}"></td>
 <td><input value="${fmt(d.l)}"></td>
 <td><span>0</span></td>
-<td><button onclick="this.parentNode.parentNode.remove();calc()">X</button></td>`;
+<td><button class="delBtn" onclick="this.parentNode.parentNode.remove();calc()">X</button></td>`;
  });
  calc();
+ updateUI();
 });
 
 onValue(logRef,(s)=>{
+ if(!isAdmin())return;
+
  let box=auditBox;
  box.innerHTML="";
  let logs=s.val()||{};
@@ -286,6 +315,7 @@ onValue(logRef,(s)=>{
 });
 
 window.toggleAudit=()=>{
+ if(!isAdmin())return;
  auditBox.style.display=
  auditBox.style.display==="none"?"block":"none";
 };
