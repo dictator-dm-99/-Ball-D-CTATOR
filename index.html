@@ -186,7 +186,6 @@ th{
 
 </div>
 
-<!-- Firebase -->
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -209,12 +208,41 @@ const db = getDatabase(app);
 const USERNAME = "Pim888_";
 const PASSWORD = "dictator_888_pim";
 
-window.setEditable = function(state){
+let isAdmin = false;
+
+/* 🔒 ปิดการแก้ไขเฉพาะส่วนเนื้อหา */
+function disableUser(){
+    document.querySelector(".container").style.userSelect = "none";
+
+    document.addEventListener("keydown", function(e){
+        if(!isAdmin){
+            const tag = e.target.tagName.toLowerCase();
+            if(tag !== "input" && tag !== "textarea"){
+                e.preventDefault();
+            }
+        }
+    });
+
+    document.addEventListener("contextmenu", function(e){
+        if(!isAdmin){
+            const tag = e.target.tagName.toLowerCase();
+            if(tag !== "input"){
+                e.preventDefault();
+            }
+        }
+    });
+}
+
+function enableAdmin(){
+    document.querySelector(".container").style.userSelect = "auto";
+}
+
+function setEditable(state){
     const elements = document.querySelectorAll(
         "td, th, .league, .date, .footer, .header"
     );
     elements.forEach(el=>{
-        el.setAttribute("contenteditable", state);
+        el.contentEditable = state;
     });
 }
 
@@ -223,8 +251,12 @@ window.login = function(){
     const pass = document.getElementById("password").value;
 
     if(user === USERNAME && pass === PASSWORD){
+        isAdmin = true;
         localStorage.setItem("adminLogin", "true");
+
         setEditable(true);
+        enableAdmin();
+
         document.getElementById("loginForm").style.display="none";
         document.getElementById("logoutSection").style.display="block";
     }else{
@@ -233,13 +265,19 @@ window.login = function(){
 }
 
 window.logout = function(){
+    isAdmin = false;
     localStorage.removeItem("adminLogin");
+
     setEditable(false);
+    disableUser();
+
     document.getElementById("loginForm").style.display="block";
     document.getElementById("logoutSection").style.display="none";
 }
 
 window.saveData = function(){
+    if(!isAdmin) return;
+
     const content = document.querySelector(".container").innerHTML;
     set(ref(db, "liveData"), { html: content });
     alert("บันทึกเรียบร้อย ✅");
@@ -249,15 +287,18 @@ onValue(ref(db, "liveData"), (snapshot) => {
     const data = snapshot.val();
     if(data){
         document.querySelector(".container").innerHTML = data.html;
+        if(isAdmin) setEditable(true);
     }
 });
 
 if(localStorage.getItem("adminLogin")==="true"){
+    isAdmin = true;
     setEditable(true);
+    enableAdmin();
     document.getElementById("loginForm").style.display="none";
     document.getElementById("logoutSection").style.display="block";
 }else{
-    setEditable(false);
+    disableUser();
 }
 
 </script>
